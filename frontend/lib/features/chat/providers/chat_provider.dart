@@ -213,12 +213,13 @@ class ChatProvider extends ChangeNotifier {
       }
     } catch (e) {
       _error = e.toString();
+      _isBackendConnected = false; // Mark as disconnected on error
       // Replace the streaming placeholder with error message
       if (_messages.isNotEmpty && _messages.last.isStreaming) {
         _messages = [
           ..._messages.sublist(0, _messages.length - 1),
           ChatMessage(
-            content: 'Sorry, something went wrong. Please try again.',
+            content: 'Connection error. Backend may be offline.',
             isUser: false,
             isStreaming: false,
           ),

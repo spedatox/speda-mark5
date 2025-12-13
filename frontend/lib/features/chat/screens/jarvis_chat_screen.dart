@@ -244,32 +244,35 @@ class _ChatScreenState extends State<ChatScreen> {
                 Consumer<ChatProvider>(
                   builder: (context, chatProvider, child) {
                     final isOnline = chatProvider.isBackendConnected;
-                    return Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          margin: const EdgeInsets.only(right: 6),
-                          decoration: BoxDecoration(
-                            color: isOnline ? JarvisColors.online : JarvisColors.danger,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: (isOnline ? JarvisColors.online : JarvisColors.danger).withOpacity(0.6),
-                                blurRadius: 4,
-                              ),
-                            ],
+                    return GestureDetector(
+                      onTap: () => chatProvider.refreshConnectionStatus(),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            margin: const EdgeInsets.only(right: 6),
+                            decoration: BoxDecoration(
+                              color: isOnline ? JarvisColors.online : JarvisColors.danger,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (isOnline ? JarvisColors.online : JarvisColors.danger).withOpacity(0.6),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        Text(
-                          isOnline ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE',
-                          style: TextStyle(
-                            color: isOnline ? JarvisColors.textMuted : JarvisColors.danger,
-                            fontSize: 9,
-                            letterSpacing: 2,
+                          Text(
+                            isOnline ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE',
+                            style: TextStyle(
+                              color: isOnline ? JarvisColors.textMuted : JarvisColors.danger,
+                              fontSize: 9,
+                              letterSpacing: 2,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     );
                   },
                 ),
