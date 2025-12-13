@@ -250,11 +250,11 @@ class _ChatScreenState extends State<ChatScreen> {
                           height: 6,
                           margin: const EdgeInsets.only(right: 6),
                           decoration: BoxDecoration(
-                            color: isOnline ? JarvisColors.online : JarvisColors.error,
+                            color: isOnline ? JarvisColors.online : JarvisColors.danger,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: (isOnline ? JarvisColors.online : JarvisColors.error).withOpacity(0.6),
+                                color: (isOnline ? JarvisColors.online : JarvisColors.danger).withOpacity(0.6),
                                 blurRadius: 4,
                               ),
                             ],
@@ -263,7 +263,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         Text(
                           isOnline ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE',
                           style: TextStyle(
-                            color: isOnline ? JarvisColors.textMuted : JarvisColors.error,
+                            color: isOnline ? JarvisColors.textMuted : JarvisColors.danger,
                             fontSize: 9,
                             letterSpacing: 2,
                           ),

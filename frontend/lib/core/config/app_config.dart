@@ -9,30 +9,29 @@ class AppConfig {
   static bool get isProduction => !kDebugMode;
   
   /// Base URL for the Speda API
-  /// In debug mode: localhost
-  /// In release mode: production server
+  /// Always use production server (Oracle Cloud)
   static String get apiBaseUrl {
-    if (kDebugMode) {
-      // Development - use localhost
-      // For Android emulator use 10.0.2.2 instead of localhost
-      if (!kIsWeb && Platform.isAndroid) {
-        return 'http://10.0.2.2:8000';
-      }
-      return 'http://localhost:8000';
-    }
-    // Production - Oracle Cloud Server
-    // TODO: Replace with your actual server URL
-    return 'https://speda-api.your-domain.com';
+    // Always use production server
+    return 'http://92.5.112.78:8000';
+    
+    // Uncomment below for local development:
+    // if (kDebugMode) {
+    //   if (!kIsWeb && Platform.isAndroid) {
+    //     return 'http://10.0.2.2:8000';
+    //   }
+    //   return 'http://localhost:8000';
+    // }
+    // return 'http://92.5.112.78:8000';
   }
 
   /// API key for authentication
-  /// TODO: In production, this should be securely stored
+  /// In production, this should match the server's API_TOKEN
   static String get apiKey {
     if (kDebugMode) {
-      return 'sk-test-dev-key-1234567890';
+      return 'sk-speda-prod-api-2025';
     }
-    // Production API key - store securely!
-    return const String.fromEnvironment('SPEDA_API_KEY', defaultValue: 'your-production-api-key');
+    // Production API key
+    return const String.fromEnvironment('SPEDA_API_KEY', defaultValue: 'sk-speda-prod-api-2025');
   }
 
   /// Default timezone
