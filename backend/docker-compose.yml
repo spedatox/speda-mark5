@@ -1,0 +1,67 @@
+# Speda Backend - Docker Compose for Production
+# Optimized for Oracle Free Tier (1GB RAM)
+
+version: '3.8'
+
+services:
+  speda-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: speda-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Application
+      - DEBUG=false
+      - APP_NAME=Speda
+      - APP_VERSION=0.1.0
+      
+      # Database (SQLite - persisted in volume)
+      - DATABASE_URL=sqlite+aiosqlite:///./data/speda.db
+      
+      # Authentication
+      - SECRET_KEY=${SECRET_KEY}
+      - API_TOKEN=${API_TOKEN}
+      
+      # LLM
+      - LLM_PROVIDER=openai
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=gpt-4-turbo-preview
+      
+      # Google OAuth
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      
+      # Weather & News APIs
+      - OPENWEATHERMAP_API_KEY=${OPENWEATHERMAP_API_KEY}
+      - NEWSAPI_KEY=${NEWSAPI_KEY}
+      
+      # Memory limits for 1GB server
+      - PYTHONMALLOC=malloc
+      - MALLOC_TRIM_THRESHOLD_=100000
+      
+    volumes:
+      # Persist database and tokens
+      - speda-data:/app/data
+      
+    # Memory limits
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 256M
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  speda-data:
+    driver: local
