@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd -r speda && useradd -r -g speda speda
 
 # Copy requirements first for better caching
-COPY pyproject.toml ./
+COPY pyproject.toml README.md ./
 
 # Install Python dependencies
 RUN pip install --upgrade pip && \
