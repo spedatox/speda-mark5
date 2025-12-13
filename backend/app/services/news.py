@@ -15,7 +15,8 @@ class NewsService:
 
     def __init__(self):
         settings = get_settings()
-        self.api_key = settings.news_api_key
+        # Support both NEWS_API_KEY and NEWSAPI_KEY
+        self.api_key = settings.news_api_key or settings.newsapi_key
         self.default_country = settings.news_default_country
 
     async def get_top_headlines(

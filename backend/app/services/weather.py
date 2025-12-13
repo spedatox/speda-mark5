@@ -15,7 +15,8 @@ class WeatherService:
 
     def __init__(self):
         settings = get_settings()
-        self.api_key = settings.weather_api_key
+        # Support both WEATHER_API_KEY and OPENWEATHERMAP_API_KEY
+        self.api_key = settings.weather_api_key or settings.openweathermap_api_key
         self.default_city = settings.weather_default_city
 
     async def get_current_weather(

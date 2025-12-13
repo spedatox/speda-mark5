@@ -55,10 +55,12 @@ class Settings(BaseSettings):
 
     # Weather API (OpenWeatherMap)
     weather_api_key: str = ""
+    openweathermap_api_key: str = ""  # Alias
     weather_default_city: str = "Istanbul,TR"
 
     # News API (NewsAPI.org)
     news_api_key: str = ""
+    newsapi_key: str = ""  # Alias
     news_default_country: str = "tr"
 
     # IMAP/SMTP Mail Configuration
