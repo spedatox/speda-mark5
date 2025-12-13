@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/jarvis_theme.dart';
 import '../../../core/widgets/hud_widgets.dart';
@@ -552,6 +553,14 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       builders: {
         'code': _CodeBlockBuilder(),
+      },
+      onTapLink: (text, href, title) async {
+        if (href != null) {
+          final uri = Uri.parse(href);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        }
       },
     );
   }
