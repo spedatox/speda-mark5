@@ -236,11 +236,14 @@ After executing any function, provide a natural, conversational response."""
         try:
             # First pass: check for function calls
             function_result = None
+            print(f"[DEBUG] Starting stream with {len(functions)} functions available")
             async for event in llm.generate_with_functions_stream(messages, functions):
+                print(f"[DEBUG] Received event: {event.get('type')}")
                 if event["type"] == "function_call":
                     # Execute the function
                     func_name = event["name"]
                     func_args = event.get("arguments", {})
+                    print(f"[DEBUG] Function call detected: {func_name} with args: {func_args}")
                     
                     # Notify frontend that we're executing a function
                     yield f"data: {json.dumps({'type': 'function_start', 'name': func_name})}\n\n"
