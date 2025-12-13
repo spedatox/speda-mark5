@@ -76,15 +76,6 @@ class LLMService(ABC):
         """Extract intent and entities from user message."""
         pass
 
-    @abstractmethod
-    async def generate_conversation_title(
-        self,
-        first_user_message: str,
-        first_assistant_response: str,
-    ) -> str:
-        """Generate a creative, concise title for a conversation."""
-        pass
-
 
 class OpenAIService(LLMService):
     """OpenAI-based LLM service."""
