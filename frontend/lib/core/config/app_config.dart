@@ -11,24 +11,21 @@ class AppConfig {
   /// Base URL for the Speda API
   /// Always use production server (Oracle Cloud)
   static String get apiBaseUrl {
-    // Always use production server
+    // Local testing - switch to production when done
+    if (kDebugMode) {
+      if (!kIsWeb && Platform.isAndroid) {
+        return 'http://10.0.2.2:8000';
+      }
+      return 'http://localhost:8000';
+    }
     return 'http://92.5.112.78:8000';
-    
-    // Uncomment below for local development:
-    // if (kDebugMode) {
-    //   if (!kIsWeb && Platform.isAndroid) {
-    //     return 'http://10.0.2.2:8000';
-    //   }
-    //   return 'http://localhost:8000';
-    // }
-    // return 'http://92.5.112.78:8000';
   }
 
   /// API key for authentication
   /// In production, this should match the server's API_TOKEN
   static String get apiKey {
     if (kDebugMode) {
-      return 'sk-speda-prod-api-2025';
+      return 'speda-dev-token';  // Local dev token
     }
     // Production API key
     return const String.fromEnvironment('SPEDA_API_KEY', defaultValue: 'sk-speda-prod-api-2025');
