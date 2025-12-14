@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -64,9 +66,11 @@ class ChatProvider extends ChangeNotifier {
   String? _error;
   bool _isStreaming = false;
   bool _isBackendConnected = false;
+  StreamSubscription<NotificationEvent>? _notificationSub;
 
   ChatProvider(this._apiService) {
     _checkBackendConnection();
+    _startNotificationStream();
   }
 
   Future<void> _checkBackendConnection() async {
@@ -98,33 +102,63 @@ class ChatProvider extends ChangeNotifier {
     });
   }
 
+  void _startNotificationStream() {
+    _notificationSub ??= _apiService.streamNotifications().listen((event) {
+      if (event.type == 'reminder' && event.items != null) {
+        for (final item in event.items!) {
+          final title = item['title']?.toString() ?? 'Reminder';
+          final status = item['status']?.toString() ?? '';
+          final due = item['due_date']?.toString();
+          final statusLabel = status == 'overdue' ? 'Overdue' : 'Due soon';
+          final text = due != null
+              ? '$statusLabel: $title (due $due)'
+              : '$statusLabel: $title';
+          _messages = [
+            ..._messages,
+            ChatMessage(
+              content: text,
+              isUser: false,
+            ),
+          ];
+        }
+        _safeNotifyListeners();
+      }
+    }, onError: (_) {});
+  }
+
   /// Send a message with streaming response
   Future<void> sendMessage(String message) async {
     if (message.trim().isEmpty) return;
 
     // Add user message
-    _messages = [..._messages, ChatMessage(
-      content: message,
-      isUser: true,
-    )];
+    _messages = [
+      ..._messages,
+      ChatMessage(
+        content: message,
+        isUser: true,
+      )
+    ];
     _isLoading = true;
     _isStreaming = true;
     _error = null;
     _safeNotifyListeners();
 
     // Add placeholder for assistant response with processing status
-    _messages = [..._messages, ChatMessage(
-      content: '',
-      isUser: false,
-      isStreaming: true,
-      processingStatus: 'Processing...',
-    )];
+    _messages = [
+      ..._messages,
+      ChatMessage(
+        content: '',
+        isUser: false,
+        isStreaming: true,
+        processingStatus: 'Processing...',
+      )
+    ];
     _safeNotifyListeners();
 
     try {
       String fullResponse = '';
       String? currentFunctionName;
-      
+
       await for (final event in _apiService.streamMessage(
         message: message,
         conversationId: _conversationId,
@@ -137,7 +171,8 @@ class ChatProvider extends ChangeNotifier {
           case 'function_start':
             // Show that a function is being executed - inline with processingStatus
             currentFunctionName = event.functionName;
-            final statusMessage = _getFunctionStatusMessage(event.functionName ?? 'unknown');
+            final statusMessage =
+                _getFunctionStatusMessage(event.functionName ?? 'unknown');
             _messages = [
               ..._messages.sublist(0, _messages.length - 1),
               ChatMessage(
@@ -152,17 +187,19 @@ class ChatProvider extends ChangeNotifier {
             _safeNotifyListeners();
             break;
           case 'function_result':
-            // Function completed, store result (response will follow)
+            // Function completed - keep showing function name while processing
+            final completedStatusMessage = _getCompletedFunctionStatusMessage(
+                event.functionName ?? currentFunctionName ?? 'unknown');
             _messages = [
               ..._messages.sublist(0, _messages.length - 1),
               ChatMessage(
                 content: '',
                 isUser: false,
                 isStreaming: true,
-                isFunctionCall: false,
-                functionName: event.functionName,
+                isFunctionCall: true,
+                functionName: event.functionName ?? currentFunctionName,
                 functionResult: event.functionResult,
-                processingStatus: 'Generating response...',
+                processingStatus: completedStatusMessage,
               ),
             ];
             _safeNotifyListeners();
@@ -170,6 +207,10 @@ class ChatProvider extends ChangeNotifier {
           case 'chunk':
             if (event.content != null) {
               fullResponse += event.content!;
+              // Keep showing function context while synthesizing
+              final processingStatus = currentFunctionName != null
+                  ? _getSynthesizingStatusMessage(currentFunctionName)
+                  : null;
               // Update the last message with accumulated content
               _messages = [
                 ..._messages.sublist(0, _messages.length - 1),
@@ -177,6 +218,7 @@ class ChatProvider extends ChangeNotifier {
                   content: fullResponse,
                   isUser: false,
                   isStreaming: true,
+                  processingStatus: processingStatus,
                 ),
               ];
               _safeNotifyListeners();
@@ -232,6 +274,22 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
+  /// Upload a file/image to knowledge base and surface confirmation
+  Future<void> uploadFile(String filePath) async {
+    _isLoading = true;
+    _safeNotifyListeners();
+    try {
+      final result = await _apiService.uploadDocument(filePath: filePath);
+      final msg = result['message']?.toString() ?? 'File uploaded';
+      addSystemMessage(msg);
+    } catch (e) {
+      addSystemMessage('Upload failed: $e');
+    } finally {
+      _isLoading = false;
+      _safeNotifyListeners();
+    }
+  }
+
   /// Get a user-friendly status message for function execution
   String _getFunctionStatusMessage(String functionName) {
     switch (functionName) {
@@ -255,10 +313,66 @@ class ChatProvider extends ChangeNotifier {
         return '📰 Fetching news...';
       case 'search_news':
         return '📰 Searching news...';
+      case 'web_search':
+        return '🔍 Searching the web...';
       case 'get_daily_briefing':
         return '📋 Preparing your briefing...';
       default:
-        return '⚡ Processing...';
+        return '⚙️ Processing...';
+    }
+  }
+
+  /// Get status message after function completed
+  String _getCompletedFunctionStatusMessage(String functionName) {
+    switch (functionName) {
+      case 'get_calendar_events':
+        return '📅 Calendar data received, analyzing...';
+      case 'create_calendar_event':
+        return '📅 Event created, preparing confirmation...';
+      case 'get_tasks':
+        return '✅ Tasks retrieved, analyzing...';
+      case 'create_task':
+        return '✅ Task created, preparing confirmation...';
+      case 'complete_task':
+        return '✅ Task completed, preparing confirmation...';
+      case 'delete_task':
+        return '🗑️ Task deleted, preparing confirmation...';
+      case 'get_current_weather':
+        return '🌤️ Weather data received, preparing summary...';
+      case 'get_weather_forecast':
+        return '🌤️ Forecast received, preparing summary...';
+      case 'get_news_headlines':
+        return '📰 Headlines received, preparing summary...';
+      case 'search_news':
+        return '📰 Articles found, preparing summary...';
+      case 'web_search':
+        return '🔍 Search results received, analyzing...';
+      case 'get_daily_briefing':
+        return '📋 Briefing data compiled, formatting...';
+      default:
+        return '⚙️ Data received, preparing response...';
+    }
+  }
+
+  /// Get status message while synthesizing response after function call
+  String _getSynthesizingStatusMessage(String functionName) {
+    switch (functionName) {
+      case 'get_calendar_events':
+        return '📅 Formatting calendar response...';
+      case 'get_tasks':
+        return '✅ Formatting task list...';
+      case 'get_current_weather':
+      case 'get_weather_forecast':
+        return '🌤️ Formatting weather report...';
+      case 'get_news_headlines':
+      case 'search_news':
+        return '📰 Formatting news summary...';
+      case 'web_search':
+        return '🔍 Formatting search results...';
+      case 'get_daily_briefing':
+        return '📋 Formatting briefing...';
+      default:
+        return '⚙️ Generating response...';
     }
   }
 
@@ -271,11 +385,13 @@ class ChatProvider extends ChangeNotifier {
     try {
       final conversation = await _apiService.getConversation(conversationId);
       _conversationId = conversation.id;
-      _messages = conversation.messages.map((msg) => ChatMessage(
-        content: msg.content,
-        isUser: msg.role == 'user',
-        timestamp: msg.createdAt,
-      )).toList();
+      _messages = conversation.messages
+          .map((msg) => ChatMessage(
+                content: msg.content,
+                isUser: msg.role == 'user',
+                timestamp: msg.createdAt,
+              ))
+          .toList();
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -295,10 +411,191 @@ class ChatProvider extends ChangeNotifier {
 
   /// Add a system message (for actions, etc.)
   void addSystemMessage(String content) {
-    _messages = [..._messages, ChatMessage(
-      content: content,
-      isUser: false,
-    )];
+    _messages = [
+      ..._messages,
+      ChatMessage(
+        content: content,
+        isUser: false,
+      )
+    ];
     _safeNotifyListeners();
+  }
+
+  /// Regenerate the last assistant response
+  Future<void> regenerateLastResponse() async {
+    if (_messages.isEmpty) return;
+
+    // Find the last user message
+    int lastUserIndex = -1;
+    for (int i = _messages.length - 1; i >= 0; i--) {
+      if (_messages[i].isUser) {
+        lastUserIndex = i;
+        break;
+      }
+    }
+
+    if (lastUserIndex == -1) return;
+
+    final lastUserMessage = _messages[lastUserIndex].content;
+
+    // Remove all messages after the user message
+    _messages = _messages.sublist(0, lastUserIndex + 1);
+    _safeNotifyListeners();
+
+    // Resend the message
+    await _resendLastUserMessage(lastUserMessage);
+  }
+
+  /// Edit and resend a message (removes it and all following messages)
+  Future<void> editMessage(int messageIndex, String newContent) async {
+    if (messageIndex < 0 || messageIndex >= _messages.length) return;
+    if (!_messages[messageIndex].isUser) return;
+
+    // Remove this message and all following
+    _messages = _messages.sublist(0, messageIndex);
+    _safeNotifyListeners();
+
+    // Send the edited message
+    await sendMessage(newContent);
+  }
+
+  /// Internal: resend a message without adding it again
+  Future<void> _resendLastUserMessage(String message) async {
+    if (message.trim().isEmpty) return;
+
+    _isLoading = true;
+    _isStreaming = true;
+    _error = null;
+    _safeNotifyListeners();
+
+    // Add placeholder for assistant response
+    _messages = [
+      ..._messages,
+      ChatMessage(
+        content: '',
+        isUser: false,
+        isStreaming: true,
+        processingStatus: '⚙️ Processing...',
+      )
+    ];
+    _safeNotifyListeners();
+
+    try {
+      String fullResponse = '';
+      String? currentFunctionName;
+
+      await for (final event in _apiService.streamMessage(
+        message: message,
+        conversationId: _conversationId,
+      )) {
+        switch (event.type) {
+          case 'start':
+            _conversationId = event.conversationId;
+            _isBackendConnected = true;
+            break;
+          case 'function_start':
+            currentFunctionName = event.functionName;
+            final statusMessage =
+                _getFunctionStatusMessage(event.functionName ?? 'unknown');
+            _messages = [
+              ..._messages.sublist(0, _messages.length - 1),
+              ChatMessage(
+                content: '',
+                isUser: false,
+                isStreaming: true,
+                isFunctionCall: true,
+                functionName: event.functionName,
+                processingStatus: statusMessage,
+              ),
+            ];
+            _safeNotifyListeners();
+            break;
+          case 'function_result':
+            final completedStatusMessage = _getCompletedFunctionStatusMessage(
+                event.functionName ?? currentFunctionName ?? 'unknown');
+            _messages = [
+              ..._messages.sublist(0, _messages.length - 1),
+              ChatMessage(
+                content: '',
+                isUser: false,
+                isStreaming: true,
+                isFunctionCall: true,
+                functionName: event.functionName ?? currentFunctionName,
+                functionResult: event.functionResult,
+                processingStatus: completedStatusMessage,
+              ),
+            ];
+            _safeNotifyListeners();
+            break;
+          case 'chunk':
+            if (event.content != null) {
+              fullResponse += event.content!;
+              final processingStatus = currentFunctionName != null
+                  ? _getSynthesizingStatusMessage(currentFunctionName)
+                  : null;
+              _messages = [
+                ..._messages.sublist(0, _messages.length - 1),
+                ChatMessage(
+                  content: fullResponse,
+                  isUser: false,
+                  isStreaming: true,
+                  processingStatus: processingStatus,
+                ),
+              ];
+              _safeNotifyListeners();
+            }
+            break;
+          case 'done':
+            _messages = [
+              ..._messages.sublist(0, _messages.length - 1),
+              ChatMessage(
+                content: event.content ?? fullResponse,
+                isUser: false,
+                isStreaming: false,
+              ),
+            ];
+            break;
+          case 'title_generated':
+            _conversationTitle = event.title;
+            _safeNotifyListeners();
+            break;
+          case 'error':
+            _error = event.message;
+            _messages = [
+              ..._messages.sublist(0, _messages.length - 1),
+              ChatMessage(
+                content: 'Sorry, something went wrong. Please try again.',
+                isUser: false,
+                isStreaming: false,
+              ),
+            ];
+            break;
+        }
+      }
+    } catch (e) {
+      _error = e.toString();
+      _isBackendConnected = false;
+      if (_messages.isNotEmpty && _messages.last.isStreaming) {
+        _messages = [
+          ..._messages.sublist(0, _messages.length - 1),
+          ChatMessage(
+            content: 'Connection error. Backend may be offline.',
+            isUser: false,
+            isStreaming: false,
+          ),
+        ];
+      }
+    } finally {
+      _isLoading = false;
+      _isStreaming = false;
+      _safeNotifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _notificationSub?.cancel();
+    _apiService.dispose();
+    super.dispose();
   }
 }

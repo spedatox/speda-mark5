@@ -18,7 +18,7 @@ class AppConfig {
       }
       return 'http://localhost:8000';
     }
-    return 'http://92.5.112.78:8000';
+    return 'http://speda.spedatox.systems:8000';
   }
 
   /// API key for authentication
@@ -39,4 +39,7 @@ class AppConfig {
 
   /// App version
   static const String appVersion = '1.0.0';
+
+  /// Mobile OAuth redirect scheme
+  static const String mobileRedirectUri = 'speda://auth/callback';
 }

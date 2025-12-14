@@ -31,8 +31,9 @@ class GoogleAuthService:
         self.redirect_uri = settings.google_redirect_uri
         self.token_file = Path("google_token.json")
 
-    def get_auth_url(self) -> str:
+    def get_auth_url(self, redirect_uri: Optional[str] = None) -> str:
         """Generate the OAuth2 authorization URL."""
+        redirect = redirect_uri or self.redirect_uri
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -40,11 +41,11 @@ class GoogleAuthService:
                     "client_secret": self.client_secret,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": [self.redirect_uri],
+                    "redirect_uris": [redirect],
                 }
             },
             scopes=SCOPES,
-            redirect_uri=self.redirect_uri,
+            redirect_uri=redirect,
         )
         auth_url, _ = flow.authorization_url(
             access_type="offline",
@@ -52,8 +53,9 @@ class GoogleAuthService:
         )
         return auth_url
 
-    async def handle_callback(self, code: str) -> Credentials:
+    async def handle_callback(self, code: str, redirect_uri: Optional[str] = None) -> Credentials:
         """Exchange authorization code for credentials."""
+        redirect = redirect_uri or self.redirect_uri
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -61,11 +63,11 @@ class GoogleAuthService:
                     "client_secret": self.client_secret,
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
-                    "redirect_uris": [self.redirect_uri],
+                    "redirect_uris": [redirect],
                 }
             },
             scopes=SCOPES,
-            redirect_uri=self.redirect_uri,
+            redirect_uri=redirect,
         )
         flow.fetch_token(code=code)
         credentials = flow.credentials

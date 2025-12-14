@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4-turbo-preview"
     openai_base_url: str | None = None
+    available_llms: list[str] = ["openai", "mock"]
+    tavily_api_key: str = ""
 
     # Memory settings
     max_context_messages: int = 20
@@ -46,7 +48,7 @@ class Settings(BaseSettings):
     # Google OAuth2 Configuration
     google_client_id: str = ""
     google_client_secret: str = ""
-    google_redirect_uri: str = "http://localhost:8000/api/auth/google/callback"
+    google_redirect_uri: str = "http://speda.spedatox.systems:8000/api/auth/google/callback"
 
     # Microsoft 365 OAuth2 Configuration
     microsoft_client_id: str = ""

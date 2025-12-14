@@ -33,12 +33,13 @@ class MicrosoftAuthService:
         self.redirect_uri = settings.microsoft_redirect_uri
         self.token_file = Path("microsoft_token.json")
 
-    def get_auth_url(self) -> str:
+    def get_auth_url(self, redirect_uri: Optional[str] = None) -> str:
         """Generate the OAuth2 authorization URL."""
+        redirect = redirect_uri or self.redirect_uri
         params = {
             "client_id": self.client_id,
             "response_type": "code",
-            "redirect_uri": self.redirect_uri,
+            "redirect_uri": redirect,
             "scope": " ".join(SCOPES),
             "response_mode": "query",
             "prompt": "consent",
@@ -46,8 +47,9 @@ class MicrosoftAuthService:
         query = "&".join(f"{k}={v}" for k, v in params.items())
         return f"{self.AUTH_ENDPOINT}?{query}"
 
-    async def handle_callback(self, code: str) -> dict:
+    async def handle_callback(self, code: str, redirect_uri: Optional[str] = None) -> dict:
         """Exchange authorization code for tokens."""
+        redirect = redirect_uri or self.redirect_uri
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 self.TOKEN_ENDPOINT,
@@ -55,7 +57,7 @@ class MicrosoftAuthService:
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
                     "code": code,
-                    "redirect_uri": self.redirect_uri,
+                    "redirect_uri": redirect,
                     "grant_type": "authorization_code",
                     "scope": " ".join(SCOPES),
                 },

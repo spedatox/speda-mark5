@@ -1,6 +1,7 @@
 """Knowledge Base Router - API endpoints for knowledge management."""
 
 from typing import Optional
+import io
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
@@ -132,11 +133,21 @@ async def add_document(
     try:
         # Read file content
         content = await file.read()
-        text_content = content.decode("utf-8", errors="ignore")
+        is_image = (file.content_type or "").startswith("image/")
+        text_content = content.decode("utf-8", errors="ignore") if not is_image else ""
         
         # Determine file type
         file_type = "text"
-        if file.filename:
+        if is_image:
+            file_type = "image"
+            try:
+                from PIL import Image  # type: ignore
+                with Image.open(io.BytesIO(content)) as img:
+                    width, height = img.size
+                    text_content = f"Image uploaded: {file.filename or 'image'} ({width}x{height})"
+            except Exception:
+                text_content = f"Image uploaded: {file.filename or 'image'} ({len(content)} bytes)"
+        elif file.filename:
             if file.filename.endswith(".md"):
                 file_type = "markdown"
             elif file.filename.endswith(".py"):

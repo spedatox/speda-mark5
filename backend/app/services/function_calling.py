@@ -8,6 +8,7 @@ from app.services.google_calendar import GoogleCalendarService
 from app.services.google_tasks import GoogleTasksService
 from app.services.weather import WeatherService
 from app.services.news import NewsService
+from app.services.search import TavilySearchService
 
 
 # ==================== Function Definitions ====================
@@ -272,6 +273,41 @@ SPEDA_FUNCTIONS = [
             }
         }
     },
+
+    # ==================== Web Search (Tavily) ====================
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": "Perform a live web search using Tavily. Use this when the user asks for up-to-date or factual information from the internet.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search query to run on the web"
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return",
+                        "default": 5
+                    },
+                    "include_images": {
+                        "type": "boolean",
+                        "description": "Include image URLs where available",
+                        "default": False
+                    },
+                    "search_depth": {
+                        "type": "string",
+                        "description": "Search depth. Use 'advanced' for broader reasoning.",
+                        "enum": ["basic", "advanced"],
+                        "default": "advanced"
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    },
     
     # ==================== Daily Briefing ====================
     {
@@ -411,6 +447,7 @@ class FunctionExecutor:
         self.tasks_service = GoogleTasksService()
         self.weather_service = WeatherService()
         self.news_service = NewsService()
+        self.search_service = TavilySearchService()
     
     async def execute(self, function_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Execute a function and return the result."""
@@ -435,6 +472,8 @@ class FunctionExecutor:
                 return await self._get_news_headlines(**arguments)
             elif function_name == "search_news":
                 return await self._search_news(**arguments)
+            elif function_name == "web_search":
+                return await self._web_search(**arguments)
             elif function_name == "get_daily_briefing":
                 return await self._get_daily_briefing(**arguments)
             elif function_name == "get_current_datetime":
@@ -701,6 +740,26 @@ class FunctionExecutor:
                     "count": len(formatted),
                 }
             return {"success": False, "error": "No articles found"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    # ==================== Web Search Implementation ====================
+
+    async def _web_search(
+        self,
+        query: str,
+        max_results: int = 5,
+        include_images: bool = False,
+        search_depth: str = "advanced",
+    ) -> dict[str, Any]:
+        """Perform live web search with Tavily."""
+        try:
+            return await self.search_service.search(
+                query=query,
+                max_results=max_results,
+                include_images=include_images,
+                search_depth=search_depth,
+            )
         except Exception as e:
             return {"success": False, "error": str(e)}
     

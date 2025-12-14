@@ -86,7 +86,7 @@ class JarvisTheme {
         color: JarvisColors.panelBackground,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: JarvisColors.panelBorder, width: 1),
         ),
       ),
@@ -94,20 +94,20 @@ class JarvisTheme {
         filled: true,
         fillColor: JarvisColors.surface.withOpacity(0.5),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(24),
           borderSide: const BorderSide(color: JarvisColors.panelBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(24),
           borderSide: const BorderSide(color: JarvisColors.panelBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(24),
           borderSide: const BorderSide(color: JarvisColors.primary, width: 1),
         ),
         hintStyle: const TextStyle(color: JarvisColors.textMuted),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -116,7 +116,7 @@ class JarvisTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(20),
             side: const BorderSide(color: JarvisColors.primary),
           ),
         ),

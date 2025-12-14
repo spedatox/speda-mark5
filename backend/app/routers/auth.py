@@ -13,19 +13,24 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 # ==================== Google OAuth ====================
 
 @router.get("/google/login")
-async def google_login():
-    """Initiate Google OAuth2 flow."""
+async def google_login(redirect_uri: str | None = None, platform: str | None = None):
+    """Initiate Google OAuth2 flow (web/mobile)."""
     auth_service = GoogleAuthService()
-    auth_url = auth_service.get_auth_url()
+    auth_url = auth_service.get_auth_url(redirect_uri=redirect_uri)
+    if platform == "mobile" and redirect_uri:
+        auth_url += f"&state=mobile"
     return {"auth_url": auth_url}
 
 
 @router.get("/google/callback")
-async def google_callback(code: str = Query(...)):
+async def google_callback(
+    code: str = Query(...),
+    redirect_uri: str | None = None,
+):
     """Handle Google OAuth2 callback."""
     auth_service = GoogleAuthService()
     try:
-        credentials = await auth_service.handle_callback(code)
+        credentials = await auth_service.handle_callback(code, redirect_uri=redirect_uri)
         return {
             "status": "success",
             "message": "Google authentication successful! You can close this window.",
@@ -55,19 +60,24 @@ async def google_logout():
 # ==================== Microsoft OAuth ====================
 
 @router.get("/microsoft/login")
-async def microsoft_login():
+async def microsoft_login(redirect_uri: str | None = None, platform: str | None = None):
     """Initiate Microsoft OAuth2 flow."""
     auth_service = MicrosoftAuthService()
-    auth_url = auth_service.get_auth_url()
+    auth_url = auth_service.get_auth_url(redirect_uri=redirect_uri)
+    if platform == "mobile" and redirect_uri:
+        auth_url += "&state=mobile"
     return {"auth_url": auth_url}
 
 
 @router.get("/microsoft/callback")
-async def microsoft_callback(code: str = Query(...)):
+async def microsoft_callback(
+    code: str = Query(...),
+    redirect_uri: str | None = None,
+):
     """Handle Microsoft OAuth2 callback."""
     auth_service = MicrosoftAuthService()
     try:
-        tokens = await auth_service.handle_callback(code)
+        tokens = await auth_service.handle_callback(code, redirect_uri=redirect_uri)
         return {
             "status": "success",
             "message": "Microsoft authentication successful! You can close this window.",

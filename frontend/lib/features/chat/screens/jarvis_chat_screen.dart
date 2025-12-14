@@ -1,13 +1,18 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:file_picker/file_picker.dart';
 
 import '../../../core/theme/jarvis_theme.dart';
 import '../../../core/widgets/hud_widgets.dart';
 import '../../../core/widgets/animated_widgets.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/config/app_config.dart';
 import '../providers/chat_provider.dart';
 
 /// JARVIS-style chat screen with HUD elements
@@ -56,6 +61,15 @@ class _ChatScreenState extends State<ChatScreen> {
     _focusNode.requestFocus();
   }
 
+  void _prefillMessage(String content) {
+    _textController.text = content;
+    _focusNode.requestFocus();
+  }
+
+  void _regenerateLastResponse() {
+    context.read<ChatProvider>().regenerateLastResponse();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -100,7 +114,8 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.history, color: JarvisColors.primary, size: 20),
+                const Icon(Icons.history,
+                    color: JarvisColors.primary, size: 20),
                 const SizedBox(width: 12),
                 Text(
                   'CONVERSATION HISTORY',
@@ -133,7 +148,8 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 // Settings button
                 ListTile(
-                  leading: const Icon(Icons.settings, color: JarvisColors.textMuted, size: 20),
+                  leading: const Icon(Icons.settings,
+                      color: JarvisColors.textMuted, size: 20),
                   title: const Text(
                     'SETTINGS',
                     style: TextStyle(
@@ -203,7 +219,7 @@ class _ChatScreenState extends State<ChatScreen> {
             constraints: const BoxConstraints(),
           ),
           const SizedBox(width: 12),
-          
+
           // Logo/Status
           Container(
             width: 36,
@@ -220,7 +236,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
             child: const Icon(
-              Icons.auto_awesome,
+              Icons.shield_outlined,
               color: JarvisColors.primary,
               size: 18,
             ),
@@ -253,11 +269,16 @@ class _ChatScreenState extends State<ChatScreen> {
                             height: 6,
                             margin: const EdgeInsets.only(right: 6),
                             decoration: BoxDecoration(
-                              color: isOnline ? JarvisColors.online : JarvisColors.danger,
+                              color: isOnline
+                                  ? JarvisColors.online
+                                  : JarvisColors.danger,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: (isOnline ? JarvisColors.online : JarvisColors.danger).withOpacity(0.6),
+                                  color: (isOnline
+                                          ? JarvisColors.online
+                                          : JarvisColors.danger)
+                                      .withOpacity(0.6),
                                   blurRadius: 4,
                                 ),
                               ],
@@ -266,7 +287,9 @@ class _ChatScreenState extends State<ChatScreen> {
                           Text(
                             isOnline ? 'SYSTEM ONLINE' : 'SYSTEM OFFLINE',
                             style: TextStyle(
-                              color: isOnline ? JarvisColors.textMuted : JarvisColors.danger,
+                              color: isOnline
+                                  ? JarvisColors.textMuted
+                                  : JarvisColors.danger,
                               fontSize: 9,
                               letterSpacing: 2,
                             ),
@@ -357,11 +380,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageBubble(ChatMessage message) {
-    // Show inline processing indicator for empty streaming messages
-    final showProcessingIndicator = message.isStreaming && 
-        message.content.isEmpty && 
-        message.processingStatus != null;
-        
+    // Show inline processing indicator during function/tool execution
+    final showProcessingIndicator =
+        message.isStreaming && message.processingStatus != null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -380,7 +402,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     Border.all(color: JarvisColors.primary.withOpacity(0.5)),
               ),
               child: const Icon(
-                Icons.auto_awesome,
+                Icons.shield_outlined,
                 color: JarvisColors.primary,
                 size: 14,
               ),
@@ -399,10 +421,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       : JarvisColors.panelBorder,
                 ),
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(4),
-                  topRight: const Radius.circular(4),
-                  bottomLeft: Radius.circular(message.isUser ? 4 : 0),
-                  bottomRight: Radius.circular(message.isUser ? 0 : 4),
+                  topLeft: const Radius.circular(18),
+                  topRight: const Radius.circular(18),
+                  bottomLeft: Radius.circular(message.isUser ? 18 : 4),
+                  bottomRight: Radius.circular(message.isUser ? 4 : 18),
                 ),
               ),
               child: Column(
@@ -433,12 +455,13 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                       ],
                     ),
-                  ] else ...[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Flexible(
-                          child: message.isUser 
+                    const SizedBox(height: 8),
+                  ],
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Flexible(
+                        child: message.isUser
                             ? Text(
                                 message.content,
                                 style: TextStyle(
@@ -449,14 +472,14 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ),
                               )
                             : _buildMarkdownContent(message.content),
-                        ),
-                        if (message.isStreaming && message.content.isNotEmpty) ...[
-                          const SizedBox(width: 2),
-                          _StreamingCursor(),
-                        ],
+                      ),
+                      if (message.isStreaming &&
+                          message.content.isNotEmpty) ...[
+                        const SizedBox(width: 2),
+                        _StreamingCursor(),
                       ],
-                    ),
-                  ],
+                    ],
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     _formatTime(message.timestamp),
@@ -466,6 +489,28 @@ class _ChatScreenState extends State<ChatScreen> {
                       letterSpacing: 1,
                     ),
                   ),
+                  if (!message.isStreaming && message.content.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (message.isUser)
+                          TextButton.icon(
+                            onPressed: () => _prefillMessage(message.content),
+                            icon: const Icon(Icons.edit, size: 14),
+                            label: const Text('Edit',
+                                style: TextStyle(fontSize: 12)),
+                          ),
+                        if (!message.isUser)
+                          TextButton.icon(
+                            onPressed: _regenerateLastResponse,
+                            icon: const Icon(Icons.restart_alt, size: 14),
+                            label: const Text('Regenerate',
+                                style: TextStyle(fontSize: 12)),
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -592,7 +637,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
                 child: const Icon(
-                  Icons.auto_awesome,
+                  Icons.shield_outlined,
                   color: JarvisColors.primary,
                   size: 28,
                 ),
@@ -664,12 +709,15 @@ class _ChatScreenState extends State<ChatScreen> {
             top: false,
             child: Row(
               children: [
+                // File upload button
+                _buildAttachButton(provider.isLoading),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
                       color: JarvisColors.background,
                       border: Border.all(color: JarvisColors.panelBorder),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(24),
                     ),
                     child: TextField(
                       controller: _textController,
@@ -679,14 +727,14 @@ class _ChatScreenState extends State<ChatScreen> {
                         fontSize: 14,
                       ),
                       decoration: const InputDecoration(
-                        hintText: 'Enter command...',
+                        hintText: 'Message Speda...',
                         hintStyle: TextStyle(
                           color: JarvisColors.textMuted,
-                          letterSpacing: 1,
+                          letterSpacing: 0.5,
                         ),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16,
+                          horizontal: 20,
                           vertical: 14,
                         ),
                       ),
@@ -695,13 +743,77 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 _buildSendButton(provider.isLoading),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  bool _isPickingFile = false;
+
+  Future<void> _pickAndUploadFile() async {
+    if (_isPickingFile) return;
+    setState(() => _isPickingFile = true);
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        type: FileType.any,
+        withData: false,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final path = result.files.single.path;
+      if (path == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('File path unavailable')),
+          );
+        }
+        return;
+      }
+
+      await context.read<ChatProvider>().uploadFile(path);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isPickingFile = false);
+    }
+  }
+
+  Widget _buildAttachButton(bool isLoading) {
+    return GestureDetector(
+      onTap: (isLoading || _isPickingFile) ? null : _pickAndUploadFile,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: JarvisColors.background,
+          border: Border.all(color: JarvisColors.panelBorder),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: _isPickingFile
+            ? const Padding(
+                padding: EdgeInsets.all(14),
+                child: ArcLoader(size: 20, strokeWidth: 2),
+              )
+            : Icon(
+                Icons.attach_file,
+                color: (isLoading || _isPickingFile)
+                    ? JarvisColors.textMuted
+                    : JarvisColors.accent,
+                size: 20,
+              ),
+      ),
     );
   }
 
@@ -718,13 +830,13 @@ class _ChatScreenState extends State<ChatScreen> {
           border: Border.all(
             color: isLoading ? JarvisColors.panelBorder : JarvisColors.primary,
           ),
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: isLoading
               ? null
               : [
                   BoxShadow(
                     color: JarvisColors.primary.withOpacity(0.3),
-                    blurRadius: 8,
+                    blurRadius: 12,
                   ),
                 ],
         ),
@@ -734,7 +846,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: ArcLoader(size: 20, strokeWidth: 2),
               )
             : const Icon(
-                Icons.send,
+                Icons.arrow_upward_rounded,
                 color: JarvisColors.primary,
                 size: 20,
               ),
@@ -798,7 +910,8 @@ class _ConversationHistoryList extends StatefulWidget {
   });
 
   @override
-  State<_ConversationHistoryList> createState() => _ConversationHistoryListState();
+  State<_ConversationHistoryList> createState() =>
+      _ConversationHistoryListState();
 }
 
 class _ConversationHistoryListState extends State<_ConversationHistoryList> {
@@ -866,7 +979,8 @@ class _ConversationHistoryListState extends State<_ConversationHistoryList> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.chat_bubble_outline, color: JarvisColors.textMuted.withOpacity(0.5), size: 48),
+            Icon(Icons.chat_bubble_outline,
+                color: JarvisColors.textMuted.withOpacity(0.5), size: 48),
             const SizedBox(height: 16),
             Text(
               'No conversations yet',
@@ -914,7 +1028,7 @@ class _ConversationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timeAgo = _formatTimeAgo(conversation.startedAt);
-    
+
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -1020,6 +1134,9 @@ class _SettingsDialogState extends State<_SettingsDialog> {
   bool _googleConnected = false;
   bool _microsoftConnected = false;
   bool _isLoading = true;
+  LlmSettings? _llmSettings;
+  String? _selectedLlm;
+  final TextEditingController _modelController = TextEditingController();
 
   @override
   void initState() {
@@ -1027,13 +1144,23 @@ class _SettingsDialogState extends State<_SettingsDialog> {
     _loadAuthStatus();
   }
 
+  @override
+  void dispose() {
+    _modelController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadAuthStatus() async {
     try {
       final apiService = context.read<ApiService>();
       final status = await apiService.getAuthStatus();
+      final llm = await apiService.getLlmSettings();
       setState(() {
         _googleConnected = status['google'] ?? false;
         _microsoftConnected = status['microsoft'] ?? false;
+        _llmSettings = llm;
+        _selectedLlm = llm.provider;
+        _modelController.text = llm.model ?? '';
         _isLoading = false;
       });
     } catch (e) {
@@ -1041,15 +1168,48 @@ class _SettingsDialogState extends State<_SettingsDialog> {
     }
   }
 
+  Future<void> _updateLlm() async {
+    if (_selectedLlm == null) return;
+    try {
+      final apiService = context.read<ApiService>();
+      final updated = await apiService.updateLlm(
+        provider: _selectedLlm!,
+        model: _modelController.text.trim().isEmpty
+            ? null
+            : _modelController.text.trim(),
+      );
+      setState(() {
+        _llmSettings = updated;
+        _selectedLlm = updated.provider;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('LLM settings updated')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update model: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _connectGoogle() async {
     try {
       final apiService = context.read<ApiService>();
-      final authUrl = await apiService.getGoogleAuthUrl();
-      
+      final isMobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+      final redirectUri = isMobile ? AppConfig.mobileRedirectUri : null;
+      final authUrl = await apiService.getGoogleAuthUrl(
+        redirectUri: redirectUri,
+        platform: isMobile ? 'mobile' : 'web',
+      );
+
       // Open in browser
       if (authUrl != null) {
         await apiService.openUrl(authUrl);
-        
+
         // Show waiting dialog
         if (mounted) {
           showDialog(
@@ -1072,7 +1232,8 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                   const SizedBox(height: 16),
                   const Text(
                     'Complete sign-in in your browser, then click Done.',
-                    style: TextStyle(color: JarvisColors.textPrimary, fontSize: 13),
+                    style: TextStyle(
+                        color: JarvisColors.textPrimary, fontSize: 13),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -1117,11 +1278,11 @@ class _SettingsDialogState extends State<_SettingsDialog> {
     return Dialog(
       backgroundColor: JarvisColors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(20),
         side: const BorderSide(color: JarvisColors.panelBorder),
       ),
       child: Container(
-        width: 400,
+        width: 420,
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1195,10 +1356,133 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                 onConnect: () {
                   // TODO: Implement Microsoft auth
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Microsoft integration coming soon')),
+                    const SnackBar(
+                        content: Text('Microsoft integration coming soon')),
                   );
                 },
                 onDisconnect: () {},
+              ),
+            ],
+
+            const SizedBox(height: 24),
+
+            // LLM selection - Modern chip style
+            const Text(
+              'AI MODEL',
+              style: TextStyle(
+                color: JarvisColors.textMuted,
+                fontSize: 10,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Provider chips
+            if (_llmSettings != null) ...[
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: (_llmSettings?.available ?? ['mock']).map((provider) {
+                  final isSelected = _selectedLlm == provider;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedLlm = provider);
+                      _updateLlm();
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? JarvisColors.primary.withOpacity(0.2)
+                            : JarvisColors.background,
+                        border: Border.all(
+                          color: isSelected
+                              ? JarvisColors.primary
+                              : JarvisColors.panelBorder,
+                          width: isSelected ? 2 : 1,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: JarvisColors.primary.withOpacity(0.3),
+                                  blurRadius: 12,
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getLlmIcon(provider),
+                            size: 18,
+                            color: isSelected
+                                ? JarvisColors.primary
+                                : JarvisColors.textMuted,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _getLlmDisplayName(provider),
+                            style: TextStyle(
+                              color: isSelected
+                                  ? JarvisColors.primary
+                                  : JarvisColors.textSecondary,
+                              fontSize: 13,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          if (isSelected) ...[
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.check_circle,
+                              size: 16,
+                              color: JarvisColors.primary,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+
+              // Current model display
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: JarvisColors.background.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: JarvisColors.panelBorder.withOpacity(0.5)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.memory, size: 16, color: JarvisColors.textMuted),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Model: ',
+                      style: TextStyle(
+                        color: JarvisColors.textMuted,
+                        fontSize: 11,
+                      ),
+                    ),
+                    Text(
+                      _llmSettings?.model ?? 'Default',
+                      style: TextStyle(
+                        color: JarvisColors.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
 
@@ -1234,6 +1518,36 @@ class _SettingsDialogState extends State<_SettingsDialog> {
     );
   }
 
+  IconData _getLlmIcon(String provider) {
+    switch (provider.toLowerCase()) {
+      case 'openai':
+        return Icons.auto_awesome;
+      case 'anthropic':
+        return Icons.psychology;
+      case 'google':
+        return Icons.g_mobiledata;
+      case 'mock':
+        return Icons.bug_report;
+      default:
+        return Icons.smart_toy;
+    }
+  }
+
+  String _getLlmDisplayName(String provider) {
+    switch (provider.toLowerCase()) {
+      case 'openai':
+        return 'OpenAI GPT';
+      case 'anthropic':
+        return 'Claude';
+      case 'google':
+        return 'Gemini';
+      case 'mock':
+        return 'Mock (Test)';
+      default:
+        return provider.toUpperCase();
+    }
+  }
+
   Widget _buildIntegrationTile({
     required IconData icon,
     required String title,
@@ -1243,17 +1557,21 @@ class _SettingsDialogState extends State<_SettingsDialog> {
     required VoidCallback onDisconnect,
   }) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         border: Border.all(
-          color: connected ? JarvisColors.online.withOpacity(0.5) : JarvisColors.panelBorder,
+          color: connected
+              ? JarvisColors.online.withOpacity(0.5)
+              : JarvisColors.panelBorder,
         ),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(16),
         color: connected ? JarvisColors.online.withOpacity(0.05) : null,
       ),
       child: Row(
         children: [
-          Icon(icon, color: connected ? JarvisColors.online : JarvisColors.textMuted, size: 28),
+          Icon(icon,
+              color: connected ? JarvisColors.online : JarvisColors.textMuted,
+              size: 28),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -1284,7 +1602,8 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                 foregroundColor: Colors.red.shade400,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
-              child: const Text('DISCONNECT', style: TextStyle(fontSize: 10, letterSpacing: 1)),
+              child: const Text('DISCONNECT',
+                  style: TextStyle(fontSize: 10, letterSpacing: 1)),
             )
           else
             TextButton(
@@ -1293,7 +1612,8 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                 foregroundColor: JarvisColors.accent,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
-              child: const Text('CONNECT', style: TextStyle(fontSize: 10, letterSpacing: 1)),
+              child: const Text('CONNECT',
+                  style: TextStyle(fontSize: 10, letterSpacing: 1)),
             ),
         ],
       ),
@@ -1307,7 +1627,7 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
   Widget? visitElementAfter(element, preferredStyle) {
     final code = element.textContent;
     String? language;
-    
+
     // Try to extract language from class attribute
     if (element.attributes['class'] != null) {
       final classes = element.attributes['class']!.split(' ');
@@ -1318,7 +1638,7 @@ class _CodeBlockBuilder extends MarkdownElementBuilder {
         }
       }
     }
-    
+
     return _CodeBlockWidget(code: code, language: language);
   }
 }

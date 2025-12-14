@@ -56,9 +56,15 @@ class ApiService {
   }
 
   /// Get Google auth URL
-  Future<String?> getGoogleAuthUrl() async {
+  Future<String?> getGoogleAuthUrl({String? redirectUri, String platform = 'web'}) async {
+    final uri = Uri.parse('$baseUrl/api/auth/google/login').replace(
+      queryParameters: {
+        if (redirectUri != null) 'redirect_uri': redirectUri,
+        'platform': platform,
+      },
+    );
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/auth/google/login'),
+      uri,
       headers: _headers,
     );
 
@@ -75,6 +81,41 @@ class ApiService {
       Uri.parse('$baseUrl/api/auth/google/logout'),
       headers: _headers,
     );
+  }
+
+  // ==================== Settings ====================
+
+  /// Get the active LLM settings
+  Future<LlmSettings> getLlmSettings() async {
+    final response = await _client.get(
+      Uri.parse('$baseUrl/api/settings/llm'),
+      headers: _headers,
+    );
+    if (response.statusCode == 200) {
+      return LlmSettings.fromJson(jsonDecode(response.body));
+    }
+    throw ApiException(statusCode: response.statusCode, message: 'Failed to load LLM settings');
+  }
+
+  /// Update the LLM provider/model
+  Future<LlmSettings> updateLlm({
+    required String provider,
+    String? model,
+    String? baseUrl,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/api/settings/llm'),
+      headers: _headers,
+      body: jsonEncode({
+        'provider': provider,
+        if (model != null) 'model': model,
+        if (baseUrl != null) 'base_url': baseUrl,
+      }),
+    );
+    if (response.statusCode == 200) {
+      return LlmSettings.fromJson(jsonDecode(response.body));
+    }
+    throw ApiException(statusCode: response.statusCode, message: 'Failed to update LLM settings');
   }
 
   /// Open URL in browser
@@ -550,6 +591,67 @@ class ApiService {
     }
   }
 
+  // ==================== Notifications (SSE) ====================
+
+  /// Stream realtime notifications
+  Stream<NotificationEvent> streamNotifications() async* {
+    final request = http.Request(
+      'GET',
+      Uri.parse('$baseUrl/notifications/stream'),
+    );
+    request.headers.addAll({
+      ..._headers,
+      'Accept': 'text/event-stream',
+    });
+
+    final streamedResponse = await _client.send(request);
+    if (streamedResponse.statusCode != 200) {
+      throw ApiException(
+        statusCode: streamedResponse.statusCode,
+        message: 'Failed to stream notifications',
+      );
+    }
+
+    final stream = streamedResponse.stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter());
+
+    await for (final line in stream) {
+      if (line.startsWith('data: ')) {
+        final jsonStr = line.substring(6);
+        if (jsonStr.isNotEmpty) {
+          try {
+            final data = jsonDecode(jsonStr) as Map<String, dynamic>;
+            yield NotificationEvent.fromJson(data);
+          } catch (_) {
+            // ignore malformed
+          }
+        }
+      }
+    }
+  }
+
+  // ==================== Uploads ====================
+
+  /// Upload a document or image to knowledge base
+  Future<Map<String, dynamic>> uploadDocument({
+    required String filePath,
+    int chunkSize = 1000,
+  }) async {
+    final uri = Uri.parse('$baseUrl/api/knowledge/documents');
+    final request = http.MultipartRequest('POST', uri);
+    request.headers.addAll(_headers);
+    request.fields['chunk_size'] = chunkSize.toString();
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final response = await request.send();
+    final body = await response.stream.bytesToString();
+    if (response.statusCode == 200) {
+      return jsonDecode(body) as Map<String, dynamic>;
+    }
+    throw ApiException(statusCode: response.statusCode, message: 'Upload failed: $body');
+  }
+
   // ==================== Conversation History ====================
 
   /// Get list of conversations
@@ -641,6 +743,54 @@ class StreamEvent {
       functionName: json['name'] as String?,
       functionResult: json['result'] as Map<String, dynamic>?,
       title: json['title'] as String?,
+    );
+  }
+}
+
+/// Notification event
+class NotificationEvent {
+  final String type;
+  final String? message;
+  final List<dynamic>? items;
+  final String? timestamp;
+
+  NotificationEvent({
+    required this.type,
+    this.message,
+    this.items,
+    this.timestamp,
+  });
+
+  factory NotificationEvent.fromJson(Map<String, dynamic> json) {
+    return NotificationEvent(
+      type: json['type'] as String? ?? 'unknown',
+      message: json['message'] as String?,
+      items: json['items'] as List<dynamic>?,
+      timestamp: json['timestamp'] as String?,
+    );
+  }
+}
+
+/// LLM settings model
+class LlmSettings {
+  final String provider;
+  final List<String> available;
+  final String? model;
+  final String? baseUrl;
+
+  LlmSettings({
+    required this.provider,
+    required this.available,
+    this.model,
+    this.baseUrl,
+  });
+
+  factory LlmSettings.fromJson(Map<String, dynamic> json) {
+    return LlmSettings(
+      provider: json['provider'] as String? ?? 'mock',
+      available: (json['available'] as List?)?.map((e) => e.toString()).toList() ?? const ['mock'],
+      model: json['model'] as String?,
+      baseUrl: json['base_url'] as String?,
     );
   }
 }

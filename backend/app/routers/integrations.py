@@ -10,6 +10,7 @@ from app.services.google_tasks import GoogleTasksService
 from app.services.imap_mail import ImapMailService
 from app.services.weather import WeatherService
 from app.services.news import NewsService
+from app.services.search import TavilySearchService
 
 
 router = APIRouter(prefix="/api/integrations", tags=["Integrations"])
@@ -302,3 +303,25 @@ async def search_news(
         raise HTTPException(status_code=503, detail="News service unavailable or not configured")
     
     return {"articles": articles}
+
+
+# ==================== Web Search ====================
+
+@router.get("/search/web")
+async def web_search(
+    query: str,
+    max_results: int = 5,
+    include_images: bool = False,
+    search_depth: str = "advanced",
+):
+    """Perform live web search via Tavily."""
+    service = TavilySearchService()
+    result = await service.search(
+        query=query,
+        max_results=max_results,
+        include_images=include_images,
+        search_depth=search_depth,
+    )
+    if not result.get("success"):
+        raise HTTPException(status_code=503, detail=result.get("error", "Search unavailable"))
+    return result

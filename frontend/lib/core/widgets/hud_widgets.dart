@@ -380,7 +380,7 @@ class _HudButtonState extends State<HudButton> {
         onTap: widget.onPressed,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
             color:
                 isActive ? widget.color.withOpacity(0.2) : Colors.transparent,
@@ -388,11 +388,12 @@ class _HudButtonState extends State<HudButton> {
               color: isActive ? widget.color : JarvisColors.panelBorder,
               width: 1,
             ),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: isActive
                 ? [
                     BoxShadow(
                       color: widget.color.withOpacity(0.3),
-                      blurRadius: 8,
+                      blurRadius: 12,
                       spreadRadius: 0,
                     ),
                   ]

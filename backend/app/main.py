@@ -18,6 +18,8 @@ from app.routers import (
     briefing_router,
     auth_router,
     integrations_router,
+    settings_router,
+    notifications_router,
 )
 from app.routers.knowledge import router as knowledge_router
 
@@ -70,6 +72,8 @@ def create_app() -> FastAPI:
     app.include_router(briefing_router)
     app.include_router(auth_router)
     app.include_router(integrations_router)
+    app.include_router(settings_router)
+    app.include_router(notifications_router)
     app.include_router(knowledge_router)
 
     @app.get("/")
