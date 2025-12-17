@@ -171,9 +171,16 @@ async def chat_stream(
     # Add user message
     await conversation_engine.add_message(conversation, "user", request.message)
 
-    # Build context with current date
+    # Build context with current date (timezone-aware)
     from datetime import datetime, timedelta
-    today = datetime.now()
+    from zoneinfo import ZoneInfo
+    
+    try:
+        tz = ZoneInfo(request.timezone)
+    except Exception:
+        tz = ZoneInfo("Europe/Istanbul")
+    
+    today = datetime.now(tz)
     tomorrow = today + timedelta(days=1)
     
     system_prompt = conversation_engine._build_system_prompt(request.timezone)
@@ -183,6 +190,7 @@ async def chat_stream(
 - Today's date: {today.strftime('%Y-%m-%d')} ({today.strftime('%A')})
 - Tomorrow's date: {tomorrow.strftime('%Y-%m-%d')} ({tomorrow.strftime('%A')})
 - Current time: {today.strftime('%H:%M')}
+- Timezone: {request.timezone}
 
 You have access to the following tools to help the user:
 

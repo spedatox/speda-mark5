@@ -939,12 +939,19 @@ class GoogleCalendarEvent {
   factory GoogleCalendarEvent.fromJson(Map<String, dynamic> json) {
     DateTime? parseDateTime(dynamic value) {
       if (value == null) return null;
-      if (value is String) return DateTime.tryParse(value);
+      if (value is String) {
+        final parsed = DateTime.tryParse(value);
+        // Convert to local time if it's UTC
+        return parsed?.toLocal();
+      }
       if (value is Map) {
         // Google returns {dateTime: "...", timeZone: "..."} or {date: "..."}
         if (value['dateTime'] != null) {
-          return DateTime.tryParse(value['dateTime']);
+          final parsed = DateTime.tryParse(value['dateTime']);
+          // Convert to local time if it's UTC
+          return parsed?.toLocal();
         } else if (value['date'] != null) {
+          // All-day events, keep as is (no time component)
           return DateTime.tryParse(value['date']);
         }
       }

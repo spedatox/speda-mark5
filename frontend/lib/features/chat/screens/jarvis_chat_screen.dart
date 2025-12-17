@@ -449,13 +449,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                   height: 1.5,
                                 ),
                               )
-                            : _buildMarkdownContent(message.content),
+                            : _buildMarkdownContent(
+                                message.isStreaming
+                                    ? '${message.content}▌'
+                                    : message.content,
+                              ),
                       ),
-                      if (message.isStreaming &&
-                          message.content.isNotEmpty) ...[
-                        const SizedBox(width: 2),
-                        _StreamingCursor(),
-                      ],
                     ],
                   ),
                   const SizedBox(height: 4),

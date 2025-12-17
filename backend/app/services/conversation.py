@@ -71,7 +71,14 @@ class ConversationEngine:
 
     def _build_system_prompt(self, timezone: str = "Europe/Istanbul") -> str:
         """Build the system prompt with current context."""
-        now = datetime.now()
+        from zoneinfo import ZoneInfo
+        
+        try:
+            tz = ZoneInfo(timezone)
+        except Exception:
+            tz = ZoneInfo("Europe/Istanbul")
+        
+        now = datetime.now(tz)
         return SYSTEM_PROMPT.format(
             current_time=now.strftime("%Y-%m-%d %H:%M"),
             timezone=timezone,
