@@ -221,29 +221,6 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           const SizedBox(width: 12),
 
-          // Logo/Status
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: JarvisColors.primary, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: JarvisColors.primary.withOpacity(0.3),
-                  blurRadius: 12,
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.shield_outlined,
-              color: JarvisColors.primary,
-              size: 18,
-            ),
-          ),
-          const SizedBox(width: 12),
-
           // Title
           Expanded(
             child: Column(
@@ -392,7 +369,7 @@ class _ChatScreenState extends State<ChatScreen> {
             message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!message.isUser) ...[
+          if (!message.isUser && false) ...[
             Container(
               width: 28,
               height: 28,
@@ -491,23 +468,29 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   if (!message.isStreaming && message.content.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisAlignment: message.isUser
+                          ? MainAxisAlignment.end
+                          : MainAxisAlignment.start,
                       children: [
                         if (message.isUser)
-                          TextButton.icon(
-                            onPressed: () => _prefillMessage(message.content),
-                            icon: const Icon(Icons.edit, size: 14),
-                            label: const Text('Edit',
-                                style: TextStyle(fontSize: 12)),
+                          GestureDetector(
+                            onTap: () => _prefillMessage(message.content),
+                            child: Icon(
+                              Icons.edit_outlined,
+                              size: 16,
+                              color: JarvisColors.textMuted.withOpacity(0.6),
+                            ),
                           ),
                         if (!message.isUser)
-                          TextButton.icon(
-                            onPressed: _regenerateLastResponse,
-                            icon: const Icon(Icons.restart_alt, size: 14),
-                            label: const Text('Regenerate',
-                                style: TextStyle(fontSize: 12)),
+                          GestureDetector(
+                            onTap: _regenerateLastResponse,
+                            child: Icon(
+                              Icons.refresh,
+                              size: 16,
+                              color: JarvisColors.textMuted.withOpacity(0.6),
+                            ),
                           ),
                       ],
                     ),
@@ -620,31 +603,6 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Animated logo
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: JarvisColors.primary, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: JarvisColors.primary.withOpacity(0.4),
-                      blurRadius: 20,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.shield_outlined,
-                  color: JarvisColors.primary,
-                  size: 28,
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 32),
 
           Text(
