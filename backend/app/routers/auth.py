@@ -2,12 +2,19 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 
 from app.services.google_auth import GoogleAuthService
 from app.services.microsoft_auth import MicrosoftAuthService
 
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+
+class MobileTokenRequest(BaseModel):
+    """Request body for mobile token exchange."""
+    access_token: str
+    id_token: str | None = None
 
 
 # ==================== Google OAuth ====================
@@ -55,6 +62,21 @@ async def google_logout():
     auth_service = GoogleAuthService()
     auth_service.logout()
     return {"status": "success", "message": "Logged out from Google"}
+
+
+@router.post("/google/mobile-token")
+async def google_mobile_token(request: MobileTokenRequest):
+    """Accept access token from mobile native Google Sign-In."""
+    auth_service = GoogleAuthService()
+    try:
+        # Store the access token from mobile sign-in
+        auth_service.store_mobile_token(request.access_token)
+        return {
+            "status": "success",
+            "message": "Google authentication successful via mobile!",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ==================== Microsoft OAuth ====================

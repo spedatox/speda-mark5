@@ -83,6 +83,27 @@ class ApiService {
     );
   }
 
+  /// Send mobile Google access token to backend
+  Future<bool> sendGoogleMobileToken(String accessToken,
+      {String? idToken}) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/api/auth/google/mobile-token'),
+        headers: _headers,
+        body: jsonEncode({
+          'access_token': accessToken,
+          if (idToken != null) 'id_token': idToken,
+        }),
+      );
+      print(
+          'sendGoogleMobileToken response: ${response.statusCode} - ${response.body}');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('sendGoogleMobileToken error: $e');
+      return false;
+    }
+  }
+
   // ==================== Settings ====================
 
   /// Get the active LLM settings
@@ -101,7 +122,7 @@ class ApiService {
   Future<LlmSettings> updateLlm({
     required String provider,
     String? model,
-    String? baseUrl,
+    String? llmBaseUrl,
   }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/settings/llm'),
@@ -109,7 +130,7 @@ class ApiService {
       body: jsonEncode({
         'provider': provider,
         if (model != null) 'model': model,
-        if (baseUrl != null) 'base_url': baseUrl,
+        if (llmBaseUrl != null) 'base_url': llmBaseUrl,
       }),
     );
     if (response.statusCode == 200) {
@@ -640,16 +661,25 @@ class ApiService {
   }) async {
     final uri = Uri.parse('$baseUrl/api/knowledge/documents');
     final request = http.MultipartRequest('POST', uri);
-    request.headers.addAll(_headers);
+    // Only add auth header, not Content-Type (multipart sets its own)
+    request.headers['X-API-Key'] = apiKey;
     request.fields['chunk_size'] = chunkSize.toString();
     request.files.add(await http.MultipartFile.fromPath('file', filePath));
 
-    final response = await request.send();
-    final body = await response.stream.bytesToString();
-    if (response.statusCode == 200) {
+    // Send with timeout
+    final streamedResponse = await request.send().timeout(
+      const Duration(seconds: 60),
+      onTimeout: () => throw ApiException(
+        statusCode: 408,
+        message: 'Upload timed out after 60 seconds',
+      ),
+    );
+    
+    final body = await streamedResponse.stream.bytesToString();
+    if (streamedResponse.statusCode == 200) {
       return jsonDecode(body) as Map<String, dynamic>;
     }
-    throw ApiException(statusCode: response.statusCode, message: 'Upload failed: $body');
+    throw ApiException(statusCode: streamedResponse.statusCode, message: 'Upload failed: $body');
   }
 
   // ==================== Conversation History ====================
@@ -774,13 +804,15 @@ class NotificationEvent {
 /// LLM settings model
 class LlmSettings {
   final String provider;
-  final List<String> available;
+  final List<String> availableProviders;
+  final List<String> availableModels;
   final String? model;
   final String? baseUrl;
 
   LlmSettings({
     required this.provider,
-    required this.available,
+    required this.availableProviders,
+    required this.availableModels,
     this.model,
     this.baseUrl,
   });
@@ -788,7 +820,11 @@ class LlmSettings {
   factory LlmSettings.fromJson(Map<String, dynamic> json) {
     return LlmSettings(
       provider: json['provider'] as String? ?? 'mock',
-      available: (json['available'] as List?)?.map((e) => e.toString()).toList() ?? const ['mock'],
+      availableProviders: (json['available_providers'] as List?)?.map((e) => e.toString()).toList() 
+          ?? (json['available'] as List?)?.map((e) => e.toString()).toList() 
+          ?? const ['mock'],
+      availableModels: (json['available_models'] as List?)?.map((e) => e.toString()).toList() 
+          ?? const ['gpt-4-turbo-preview'],
       model: json['model'] as String?,
       baseUrl: json['base_url'] as String?,
     );

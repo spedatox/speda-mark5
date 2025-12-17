@@ -123,3 +123,21 @@ class GoogleAuthService:
         """Remove stored credentials."""
         if self.token_file.exists():
             self.token_file.unlink()
+
+    def store_mobile_token(self, access_token: str) -> None:
+        """Store access token from mobile native sign-in.
+        
+        Note: Mobile tokens don't have refresh tokens, so they'll expire.
+        The mobile app should re-authenticate when needed.
+        """
+        token_data = {
+            "token": access_token,
+            "refresh_token": None,  # Mobile sign-in doesn't provide refresh token
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "scopes": SCOPES,
+            "source": "mobile",  # Mark as mobile token
+        }
+        with open(self.token_file, "w") as f:
+            json.dump(token_data, f)

@@ -80,6 +80,9 @@ class LLMService(ABC):
 class OpenAIService(LLMService):
     """OpenAI-based LLM service."""
 
+    # Models that require max_completion_tokens instead of max_tokens
+    NEW_API_MODELS = ['o1', 'o3', 'gpt-4o', 'gpt-4.1', 'gpt-5', 'chatgpt']
+
     def __init__(self):
         settings = get_settings()
         self.client = AsyncOpenAI(
@@ -87,6 +90,16 @@ class OpenAIService(LLMService):
             base_url=settings.openai_base_url,
         )
         self.model = settings.openai_model
+
+    def _uses_new_api(self) -> bool:
+        """Check if current model uses the new API with max_completion_tokens."""
+        return any(self.model.startswith(prefix) for prefix in self.NEW_API_MODELS)
+
+    def _get_token_params(self, max_tokens: int) -> dict:
+        """Get the correct token parameter based on model."""
+        if self._uses_new_api():
+            return {"max_completion_tokens": max_tokens}
+        return {"max_tokens": max_tokens}
 
     async def generate_response(
         self,
@@ -99,7 +112,7 @@ class OpenAIService(LLMService):
             model=self.model,
             messages=messages,
             temperature=temperature,
-            max_tokens=max_tokens,
+            **self._get_token_params(max_tokens),
         )
         return response.choices[0].message.content or ""
 
@@ -114,7 +127,7 @@ class OpenAIService(LLMService):
             model=self.model,
             messages=messages,
             temperature=temperature,
-            max_tokens=max_tokens,
+            **self._get_token_params(max_tokens),
             stream=True,
         )
         async for chunk in stream:
@@ -135,7 +148,7 @@ class OpenAIService(LLMService):
             tools=functions,
             tool_choice="auto",
             temperature=temperature,
-            max_tokens=max_tokens,
+            **self._get_token_params(max_tokens),
         )
         
         message = response.choices[0].message
@@ -170,7 +183,7 @@ class OpenAIService(LLMService):
             tools=functions,
             tool_choice="auto",
             temperature=temperature,
-            max_tokens=max_tokens,
+            **self._get_token_params(max_tokens),
             stream=True,
         )
         
@@ -244,7 +257,7 @@ Respond in JSON format only."""
             model=self.model,
             messages=messages,
             temperature=0.1,
-            max_tokens=500,
+            **self._get_token_params(500),
             response_format={"type": "json_object"},
         )
 
@@ -478,7 +491,7 @@ Just output the title, nothing else."""
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
-                max_tokens=30,
+                **self._get_token_params(30),
             )
             title = response.choices[0].message.content or "Yeni Sohbet"
             # Clean up the title

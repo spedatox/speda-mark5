@@ -1,4 +1,4 @@
-package com.example.speda
+package com.spedatox.speda
 
 import io.flutter.embedding.android.FlutterActivity
 

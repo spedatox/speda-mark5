@@ -3,13 +3,18 @@
 from typing import Optional
 import io
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from pydantic import BaseModel
 
+from app.auth import verify_api_key
 from app.services.knowledge_base import KnowledgeBaseService
 
 
-router = APIRouter(prefix="/api/knowledge", tags=["Knowledge Base"])
+router = APIRouter(
+    prefix="/api/knowledge", 
+    tags=["Knowledge Base"],
+    dependencies=[Depends(verify_api_key)],
+)
 
 
 # ==================== Request Models ====================

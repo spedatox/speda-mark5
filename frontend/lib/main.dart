@@ -9,8 +9,11 @@ import 'features/briefing/providers/briefing_provider.dart';
 import 'core/services/api_service.dart';
 import 'app.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize app config (loads backend mode preference)
+  await AppConfig.init();
   
   final apiService = ApiService(
     baseUrl: AppConfig.apiBaseUrl,

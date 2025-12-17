@@ -12,6 +12,7 @@ import '../../../core/theme/jarvis_theme.dart';
 import '../../../core/widgets/hud_widgets.dart';
 import '../../../core/widgets/animated_widgets.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/google_auth_service.dart';
 import '../../../core/config/app_config.dart';
 import '../providers/chat_provider.dart';
 
@@ -1199,14 +1200,48 @@ class _SettingsDialogState extends State<_SettingsDialog> {
   Future<void> _connectGoogle() async {
     try {
       final apiService = context.read<ApiService>();
-      final isMobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
-      final redirectUri = isMobile ? AppConfig.mobileRedirectUri : null;
+      final isMobile = GoogleAuthService.shouldUseNativeSignIn;
+
+      if (isMobile) {
+        // Use native Google Sign-In on mobile
+        try {
+          final googleAuth = GoogleAuthService();
+          final auth = await googleAuth.signIn();
+
+          if (auth != null && auth.accessToken != null) {
+            // Send token to backend
+            final success = await apiService.sendGoogleMobileToken(
+              auth.accessToken!,
+              idToken: auth.idToken,
+            );
+
+            if (success) {
+              setState(() => _googleConnected = true);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Google connected successfully!')),
+                );
+              }
+              return; // Success - exit early
+            } else {
+              throw Exception('Failed to authenticate with backend');
+            }
+          } else {
+            // User cancelled - just return without error
+            return;
+          }
+        } catch (e) {
+          // Native sign-in failed, fall through to web flow
+          print('Native Google Sign-In failed: $e, falling back to web flow');
+        }
+      }
+
+      // Use web OAuth flow (fallback for mobile if native fails, or primary for web)
       final authUrl = await apiService.getGoogleAuthUrl(
-        redirectUri: redirectUri,
-        platform: isMobile ? 'mobile' : 'web',
+        platform: 'mobile',
       );
 
-      // Open in browser
       if (authUrl != null) {
         await apiService.openUrl(authUrl);
 
@@ -1263,6 +1298,12 @@ class _SettingsDialogState extends State<_SettingsDialog> {
     try {
       final apiService = context.read<ApiService>();
       await apiService.logoutGoogle();
+
+      // Also sign out from native Google Sign-In if on mobile
+      if (GoogleAuthService.shouldUseNativeSignIn) {
+        await GoogleAuthService().signOut();
+      }
+
       setState(() => _googleConnected = false);
     } catch (e) {
       if (mounted) {
@@ -1382,7 +1423,8 @@ class _SettingsDialogState extends State<_SettingsDialog> {
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: (_llmSettings?.available ?? ['mock']).map((provider) {
+                children: (_llmSettings?.availableProviders ?? ['mock'])
+                    .map((provider) {
                   final isSelected = _selectedLlm == provider;
                   return GestureDetector(
                     onTap: () {
@@ -1453,6 +1495,66 @@ class _SettingsDialogState extends State<_SettingsDialog> {
               ),
               const SizedBox(height: 16),
 
+              // Model selection dropdown
+              if (_selectedLlm == 'openai' &&
+                  (_llmSettings?.availableModels.isNotEmpty ?? false)) ...[
+                const Text(
+                  'SELECT MODEL',
+                  style: TextStyle(
+                    color: JarvisColors.textMuted,
+                    fontSize: 10,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: JarvisColors.background,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: JarvisColors.panelBorder),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _llmSettings?.availableModels
+                                  .contains(_modelController.text) ==
+                              true
+                          ? _modelController.text
+                          : _llmSettings?.availableModels.first,
+                      isExpanded: true,
+                      dropdownColor: JarvisColors.surface,
+                      icon: Icon(Icons.keyboard_arrow_down,
+                          color: JarvisColors.primary),
+                      style: TextStyle(
+                          color: JarvisColors.textPrimary, fontSize: 13),
+                      items: (_llmSettings?.availableModels ?? []).map((model) {
+                        return DropdownMenuItem<String>(
+                          value: model,
+                          child: Text(
+                            model,
+                            style: TextStyle(
+                              color: model == _modelController.text
+                                  ? JarvisColors.primary
+                                  : JarvisColors.textPrimary,
+                              fontWeight: model == _modelController.text
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _modelController.text = value);
+                          _updateLlm();
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
               // Current model display
               Container(
                 padding: const EdgeInsets.all(12),
@@ -1467,7 +1569,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                     Icon(Icons.memory, size: 16, color: JarvisColors.textMuted),
                     const SizedBox(width: 8),
                     Text(
-                      'Model: ',
+                      'Active: ',
                       style: TextStyle(
                         color: JarvisColors.textMuted,
                         fontSize: 11,
@@ -1485,6 +1587,71 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                 ),
               ),
             ],
+
+            const SizedBox(height: 24),
+
+            // Backend selection
+            const Text(
+              'BACKEND',
+              style: TextStyle(
+                color: JarvisColors.textMuted,
+                fontSize: 10,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Backend toggle chips
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _buildBackendChip(
+                  icon: Icons.computer,
+                  label: 'Local',
+                  isSelected: AppConfig.isLocalBackend,
+                  onTap: () async {
+                    await AppConfig.setBackendMode(AppConfig.localMode);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Switched to Local backend. Restart app to apply.'),
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                    setState(() {});
+                  },
+                ),
+                _buildBackendChip(
+                  icon: Icons.cloud,
+                  label: 'Cloud',
+                  isSelected: AppConfig.isCloudBackend,
+                  onTap: () async {
+                    await AppConfig.setBackendMode(AppConfig.cloudMode);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Switched to Cloud backend. Restart app to apply.'),
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                    setState(() {});
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Current: ${AppConfig.apiBaseUrl}',
+              style: TextStyle(
+                color: JarvisColors.textMuted,
+                fontSize: 10,
+              ),
+            ),
 
             const SizedBox(height: 24),
 
@@ -1512,6 +1679,69 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                 fontSize: 11,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackendChip({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? JarvisColors.primary.withOpacity(0.2)
+              : JarvisColors.background,
+          border: Border.all(
+            color: isSelected ? JarvisColors.primary : JarvisColors.panelBorder,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: JarvisColors.primary.withOpacity(0.3),
+                    blurRadius: 12,
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? JarvisColors.primary : JarvisColors.textMuted,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? JarvisColors.primary
+                    : JarvisColors.textSecondary,
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                letterSpacing: 0.5,
+              ),
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Icon(
+                Icons.check_circle,
+                size: 16,
+                color: JarvisColors.primary,
+              ),
+            ],
           ],
         ),
       ),
