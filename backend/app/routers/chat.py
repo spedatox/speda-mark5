@@ -159,8 +159,11 @@ async def chat_stream(
     function_executor = FunctionExecutor()
     functions = get_function_definitions()
 
-    # Build memory context
+    # Build memory context (stored facts)
     memory_context = await memory_service.build_context_from_memory()
+    
+    # Build recent conversations context (for continuity)
+    recent_context = await memory_service.get_recent_conversations_context(limit=3)
 
     # Get or create conversation
     conversation = await conversation_engine.get_or_create_conversation(conversation_id)
@@ -212,13 +215,19 @@ IMPORTANT RULES:
 2. MEMORY:
    - When user says "remember this", "hatırla", "kaydet" → use remember_info
    - When user asks about previously saved info → use search_memory first
+   - You remember previous conversations - use this context to maintain continuity
 
 3. LANGUAGE: Respond in the same language as the user (Turkish or English)
 
 After executing any function, provide a natural, conversational response."""
 
+    # Add memory context (stored facts)
     if memory_context:
-        system_prompt += f"\n\n## Additional Context\n{memory_context}"
+        system_prompt += f"\n\n{memory_context}"
+    
+    # Add recent conversations context
+    if recent_context:
+        system_prompt += f"\n\n{recent_context}"
 
     context_messages = await conversation_engine.get_context_messages(conversation)
 
@@ -310,6 +319,21 @@ After executing any function, provide a natural, conversational response."""
                         conversation.title = "Yeni Sohbet"
                 
                 await db.commit()
+                
+                # Extract and store facts periodically (every 10 messages in a conversation)
+                try:
+                    from sqlalchemy import func
+                    msg_count_result = await db.execute(
+                        select(func.count()).where(Message.conversation_id == conversation.id)
+                    )
+                    msg_count = msg_count_result.scalar() or 0
+                    
+                    # Extract facts every 10 messages
+                    if msg_count > 0 and msg_count % 10 == 0:
+                        await memory_service.extract_and_store_facts(conversation.id)
+                        print(f"[MEMORY] Extracted facts from conversation {conversation.id}")
+                except Exception as mem_error:
+                    print(f"[MEMORY] Error extracting facts: {mem_error}")
             
             yield f"data: {json.dumps({'type': 'done', 'content': full_response})}\n\n"
         except Exception as e:

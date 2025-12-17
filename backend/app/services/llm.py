@@ -82,6 +82,9 @@ class OpenAIService(LLMService):
 
     # Models that require max_completion_tokens instead of max_tokens
     NEW_API_MODELS = ['o1', 'o3', 'gpt-4o', 'gpt-4.1', 'gpt-5', 'chatgpt']
+    
+    # Models that don't support temperature parameter (reasoning models)
+    NO_TEMPERATURE_MODELS = ['o1', 'o3']
 
     def __init__(self):
         settings = get_settings()
@@ -95,11 +98,21 @@ class OpenAIService(LLMService):
         """Check if current model uses the new API with max_completion_tokens."""
         return any(self.model.startswith(prefix) for prefix in self.NEW_API_MODELS)
 
+    def _supports_temperature(self) -> bool:
+        """Check if current model supports temperature parameter."""
+        return not any(self.model.startswith(prefix) for prefix in self.NO_TEMPERATURE_MODELS)
+
     def _get_token_params(self, max_tokens: int) -> dict:
         """Get the correct token parameter based on model."""
         if self._uses_new_api():
             return {"max_completion_tokens": max_tokens}
         return {"max_tokens": max_tokens}
+
+    def _get_temperature_param(self, temperature: float) -> dict:
+        """Get temperature parameter if model supports it."""
+        if self._supports_temperature():
+            return {"temperature": temperature}
+        return {}
 
     async def generate_response(
         self,
@@ -111,7 +124,7 @@ class OpenAIService(LLMService):
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            temperature=temperature,
+            **self._get_temperature_param(temperature),
             **self._get_token_params(max_tokens),
         )
         return response.choices[0].message.content or ""
@@ -126,7 +139,7 @@ class OpenAIService(LLMService):
         stream = await self.client.chat.completions.create(
             model=self.model,
             messages=messages,
-            temperature=temperature,
+            **self._get_temperature_param(temperature),
             **self._get_token_params(max_tokens),
             stream=True,
         )
@@ -147,7 +160,7 @@ class OpenAIService(LLMService):
             messages=messages,
             tools=functions,
             tool_choice="auto",
-            temperature=temperature,
+            **self._get_temperature_param(temperature),
             **self._get_token_params(max_tokens),
         )
         
@@ -182,7 +195,7 @@ class OpenAIService(LLMService):
             messages=messages,
             tools=functions,
             tool_choice="auto",
-            temperature=temperature,
+            **self._get_temperature_param(temperature),
             **self._get_token_params(max_tokens),
             stream=True,
         )
@@ -490,7 +503,7 @@ Just output the title, nothing else."""
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
+                **self._get_temperature_param(0.7),
                 **self._get_token_params(30),
             )
             title = response.choices[0].message.content or "Yeni Sohbet"

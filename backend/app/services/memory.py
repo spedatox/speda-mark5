@@ -87,6 +87,50 @@ class MemoryService:
         )
         return result.rowcount > 0
 
+    async def get_recent_conversations_context(self, limit: int = 5) -> str:
+        """Get context from recent conversations for continuity."""
+        from sqlalchemy.orm import selectinload
+        
+        result = await self.db.execute(
+            select(Conversation)
+            .options(selectinload(Conversation.messages))
+            .order_by(Conversation.started_at.desc())
+            .limit(limit)
+        )
+        conversations = result.scalars().all()
+        
+        if not conversations:
+            return ""
+        
+        context_parts = ["## Recent Conversation History"]
+        
+        for conv in reversed(conversations):  # oldest first
+            if not conv.messages:
+                continue
+            
+            # Get key messages from each conversation
+            messages = sorted(conv.messages, key=lambda m: m.created_at)
+            
+            # Take first user message and last few exchanges
+            if len(messages) >= 2:
+                first_user = next((m for m in messages if m.role == "user"), None)
+                if first_user:
+                    # Summarize the conversation topic
+                    topic = first_user.content[:100]
+                    if len(first_user.content) > 100:
+                        topic += "..."
+                    context_parts.append(f"\n### Conversation from {conv.started_at.strftime('%Y-%m-%d %H:%M')}")
+                    context_parts.append(f"Topic: {topic}")
+                    
+                    # Include last 2 exchanges if available
+                    recent = messages[-4:] if len(messages) >= 4 else messages
+                    for msg in recent:
+                        role = "User" if msg.role == "user" else "Speda"
+                        content = msg.content[:200] + "..." if len(msg.content) > 200 else msg.content
+                        context_parts.append(f"- {role}: {content}")
+        
+        return "\n".join(context_parts) if len(context_parts) > 1 else ""
+
     async def build_context_from_memory(self) -> str:
         """Build a context string from important memories for the LLM."""
         memories = await self.get_important_memories(min_importance=5)
