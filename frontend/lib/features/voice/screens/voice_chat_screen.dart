@@ -38,7 +38,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
   String _responseText = '';
   bool _isAvailable = false;
   double _soundLevel = 0.0;
-  bool _useDeviceTts = true; // Use device TTS until backend is updated
+  bool _useDeviceTts = false; // Use server TTS with OpenAI
 
   late AnimationController _pulseController;
   late AnimationController _waveController;
