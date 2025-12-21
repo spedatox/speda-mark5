@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     app_name: str = "Speda"
     app_version: str = "0.1.0"
     debug: bool = False
+    api_base_url: str = "http://localhost:8000"  # Base URL for API responses
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./speda.db"
@@ -36,10 +37,10 @@ class Settings(BaseSettings):
     # LLM Configuration
     llm_provider: Literal["openai", "mock"] = "mock"
     openai_api_key: str = ""
-    openai_model: str = "gpt-4-turbo-preview"
+    openai_model: str = "gpt-5-mini"
     openai_base_url: str | None = None
     available_llms: list[str] = ["openai", "mock"]
-    tavily_api_key: str = ""
+    tavily_api_key: str = "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"
 
     # Memory settings
     max_context_messages: int = 20
@@ -58,7 +59,7 @@ class Settings(BaseSettings):
     # Weather API (OpenWeatherMap)
     weather_api_key: str = ""
     openweathermap_api_key: str = ""  # Alias
-    weather_default_city: str = "Istanbul,TR"
+    weather_default_city: str = "Ankara,TR"
 
     # News API (NewsAPI.org)
     news_api_key: str = ""

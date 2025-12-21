@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'core/config/app_config.dart';
+import 'core/services/notification_service.dart';
 import 'features/chat/providers/chat_provider.dart';
 import 'features/tasks/providers/task_provider.dart';
 import 'features/calendar/providers/calendar_provider.dart';
@@ -14,6 +15,11 @@ void main() async {
   
   // Initialize app config (loads backend mode preference)
   await AppConfig.init();
+  
+  // Initialize notification service
+  final notificationService = NotificationService();
+  await notificationService.init();
+  await notificationService.requestPermissions();
   
   final apiService = ApiService(
     baseUrl: AppConfig.apiBaseUrl,

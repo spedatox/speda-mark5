@@ -6,6 +6,7 @@ import '../../features/chat/screens/jarvis_chat_screen.dart';
 import '../../features/tasks/screens/jarvis_tasks_screen.dart';
 import '../../features/calendar/screens/jarvis_calendar_screen.dart';
 import '../../features/briefing/screens/jarvis_briefing_screen.dart';
+import '../../features/voice/screens/voice_chat_screen.dart';
 import '../../features/tasks/providers/task_provider.dart';
 import '../../features/calendar/providers/calendar_provider.dart';
 
@@ -27,6 +28,7 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   final List<Widget> _screens = const [
     ChatScreen(),
+    VoiceChatScreen(),
     TasksScreen(),
     CalendarScreen(),
     BriefingScreen(),
@@ -45,15 +47,15 @@ class _MainScaffoldState extends State<MainScaffold> {
   /// Refresh data when switching to a tab
   void _refreshDataForTab(int index) {
     switch (index) {
-      case 1: // Tasks
+      case 2: // Tasks
         context.read<TaskProvider>().loadTasks();
         break;
-      case 2: // Calendar - load a week of events
+      case 3: // Calendar - load a week of events
         final now = DateTime.now();
         context.read<CalendarProvider>().loadEvents(
-          startDate: now.subtract(const Duration(days: 3)),
-          endDate: now.add(const Duration(days: 4)),
-        );
+              startDate: now.subtract(const Duration(days: 3)),
+              endDate: now.add(const Duration(days: 4)),
+            );
         break;
     }
   }
@@ -95,12 +97,13 @@ class _MainScaffoldState extends State<MainScaffold> {
             children: [
               _buildNavItem(
                   0, Icons.chat_bubble_outline, Icons.chat_bubble, 'CHAT'),
+              _buildNavItem(1, Icons.mic_none, Icons.mic, 'VOICE'),
               _buildNavItem(
-                  1, Icons.task_alt_outlined, Icons.task_alt, 'TASKS'),
-              _buildNavItem(2, Icons.calendar_today_outlined,
+                  2, Icons.task_alt_outlined, Icons.task_alt, 'TASKS'),
+              _buildNavItem(3, Icons.calendar_today_outlined,
                   Icons.calendar_today, 'CALENDAR'),
               _buildNavItem(
-                  3, Icons.dashboard_outlined, Icons.dashboard, 'BRIEFING'),
+                  4, Icons.dashboard_outlined, Icons.dashboard, 'BRIEFING'),
             ],
           ),
         ),

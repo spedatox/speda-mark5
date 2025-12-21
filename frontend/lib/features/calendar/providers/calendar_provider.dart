@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/services/api_service.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/models/api_response.dart';
 
 /// Calendar provider for managing events state.
 /// Supports both local events and Google Calendar events.
 class CalendarProvider extends ChangeNotifier {
   final ApiService _apiService;
+  final NotificationService _notificationService = NotificationService();
 
   List<EventModel> _localEvents = [];
   List<GoogleCalendarEvent> _googleEvents = [];
@@ -19,7 +21,8 @@ class CalendarProvider extends ChangeNotifier {
 
   // Getters
   List<EventModel> get localEvents => List.unmodifiable(_localEvents);
-  List<GoogleCalendarEvent> get googleEvents => List.unmodifiable(_googleEvents);
+  List<GoogleCalendarEvent> get googleEvents =>
+      List.unmodifiable(_googleEvents);
   bool get isLoading => _isLoading;
   String? get error => _error;
   DateTime get selectedDate => _selectedDate;
@@ -29,7 +32,7 @@ class CalendarProvider extends ChangeNotifier {
   List<dynamic> get todayEvents {
     final now = DateTime.now();
     final List<dynamic> combined = [];
-    
+
     // Add Google events for today
     combined.addAll(_googleEvents.where((e) {
       if (e.start == null) return false;
@@ -37,20 +40,20 @@ class CalendarProvider extends ChangeNotifier {
           e.start!.month == now.month &&
           e.start!.day == now.day;
     }));
-    
+
     // Add local events for today
     combined.addAll(_localEvents.where((e) =>
         e.startTime.year == now.year &&
         e.startTime.month == now.month &&
         e.startTime.day == now.day));
-    
+
     return combined;
   }
 
   /// Get events for a specific date (combined)
   List<dynamic> getEventsForDate(DateTime date) {
     final List<dynamic> combined = [];
-    
+
     // Add Google events
     combined.addAll(_googleEvents.where((e) {
       if (e.start == null) return false;
@@ -58,13 +61,13 @@ class CalendarProvider extends ChangeNotifier {
           e.start!.month == date.month &&
           e.start!.day == date.day;
     }));
-    
+
     // Add local events
     combined.addAll(_localEvents.where((e) =>
         e.startTime.year == date.year &&
         e.startTime.month == date.month &&
         e.startTime.day == date.day));
-    
+
     return combined;
   }
 
@@ -79,9 +82,10 @@ class CalendarProvider extends ChangeNotifier {
 
     try {
       // Try to load from Google Calendar
-      final start = startDate ?? DateTime.now().subtract(const Duration(days: 30));
+      final start =
+          startDate ?? DateTime.now().subtract(const Duration(days: 30));
       final end = endDate ?? DateTime.now().add(const Duration(days: 60));
-      
+
       _googleEvents = await _apiService.getGoogleCalendarEvents(
         startDate: start.toIso8601String(),
         endDate: end.toIso8601String(),
@@ -93,7 +97,8 @@ class CalendarProvider extends ChangeNotifier {
         // Fall back to local events
         try {
           _localEvents = await _apiService.getEvents(
-            startDate: startDate ?? DateTime.now().subtract(const Duration(days: 30)),
+            startDate:
+                startDate ?? DateTime.now().subtract(const Duration(days: 30)),
             endDate: endDate ?? DateTime.now().add(const Duration(days: 60)),
           );
         } catch (_) {
@@ -171,6 +176,18 @@ class CalendarProvider extends ChangeNotifier {
           final bStart = b.start ?? DateTime.now();
           return aStart.compareTo(bStart);
         });
+
+        // Schedule notification reminder
+        if (event.start != null) {
+          await _notificationService.scheduleEventReminder(
+            eventId: event.id,
+            eventTitle: event.summary,
+            eventTime: event.start!,
+            minutesBefore: 15,
+            location: event.location,
+          );
+        }
+
         notifyListeners();
         return event;
       } else {
@@ -185,6 +202,16 @@ class CalendarProvider extends ChangeNotifier {
         );
         _localEvents.add(event);
         _localEvents.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+        // Schedule notification reminder for local event
+        await _notificationService.scheduleEventReminder(
+          eventId: event.id.toString(),
+          eventTitle: event.title,
+          eventTime: event.startTime,
+          minutesBefore: 15,
+          location: event.location,
+        );
+
         notifyListeners();
         return event;
       }

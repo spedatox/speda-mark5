@@ -1281,362 +1281,370 @@ class _SettingsDialogState extends State<_SettingsDialog> {
       ),
       child: Container(
         width: 420,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 24,
-                  color: JarvisColors.primary,
-                  margin: const EdgeInsets.only(right: 12),
-                ),
-                const Text(
-                  'SETTINGS',
-                  style: TextStyle(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 24,
                     color: JarvisColors.primary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 3,
+                    margin: const EdgeInsets.only(right: 12),
                   ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  color: JarvisColors.textMuted,
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Integrations section
-            const Text(
-              'INTEGRATIONS',
-              style: TextStyle(
-                color: JarvisColors.textMuted,
-                fontSize: 10,
-                letterSpacing: 2,
+                  const Text(
+                    'SETTINGS',
+                    style: TextStyle(
+                      color: JarvisColors.primary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    color: JarvisColors.textMuted,
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 24),
 
-            if (_isLoading)
-              const Center(child: ArcLoader(size: 32))
-            else ...[
-              // Google Account
-              _buildIntegrationTile(
-                icon: Icons.g_mobiledata,
-                title: 'Google Account',
-                subtitle: _googleConnected
-                    ? 'Calendar & Tasks connected'
-                    : 'Connect for Calendar & Tasks',
-                connected: _googleConnected,
-                onConnect: _connectGoogle,
-                onDisconnect: _disconnectGoogle,
+              // Integrations section
+              const Text(
+                'INTEGRATIONS',
+                style: TextStyle(
+                  color: JarvisColors.textMuted,
+                  fontSize: 10,
+                  letterSpacing: 2,
+                ),
               ),
               const SizedBox(height: 12),
 
-              // Microsoft Account (future)
-              _buildIntegrationTile(
-                icon: Icons.window,
-                title: 'Microsoft 365',
-                subtitle: _microsoftConnected
-                    ? 'Mail connected'
-                    : 'Connect for School Mail',
-                connected: _microsoftConnected,
-                onConnect: () {
-                  // TODO: Implement Microsoft auth
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Microsoft integration coming soon')),
-                  );
-                },
-                onDisconnect: () {},
+              if (_isLoading)
+                const Center(child: ArcLoader(size: 32))
+              else ...[
+                // Google Account
+                _buildIntegrationTile(
+                  icon: Icons.g_mobiledata,
+                  title: 'Google Account',
+                  subtitle: _googleConnected
+                      ? 'Calendar & Tasks connected'
+                      : 'Connect for Calendar & Tasks',
+                  connected: _googleConnected,
+                  onConnect: _connectGoogle,
+                  onDisconnect: _disconnectGoogle,
+                ),
+                const SizedBox(height: 12),
+
+                // Microsoft Account (future)
+                _buildIntegrationTile(
+                  icon: Icons.window,
+                  title: 'Microsoft 365',
+                  subtitle: _microsoftConnected
+                      ? 'Mail connected'
+                      : 'Connect for School Mail',
+                  connected: _microsoftConnected,
+                  onConnect: () {
+                    // TODO: Implement Microsoft auth
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Microsoft integration coming soon')),
+                    );
+                  },
+                  onDisconnect: () {},
+                ),
+              ],
+
+              const SizedBox(height: 24),
+
+              // LLM selection - Modern chip style
+              const Text(
+                'AI MODEL',
+                style: TextStyle(
+                  color: JarvisColors.textMuted,
+                  fontSize: 10,
+                  letterSpacing: 2,
+                ),
               ),
-            ],
+              const SizedBox(height: 12),
 
-            const SizedBox(height: 24),
+              // Provider chips
+              if (_llmSettings != null) ...[
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: (_llmSettings?.availableProviders ?? ['mock'])
+                      .map((provider) {
+                    final isSelected = _selectedLlm == provider;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _selectedLlm = provider);
+                        _updateLlm();
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? JarvisColors.primary.withOpacity(0.2)
+                              : JarvisColors.background,
+                          border: Border.all(
+                            color: isSelected
+                                ? JarvisColors.primary
+                                : JarvisColors.panelBorder,
+                            width: isSelected ? 2 : 1,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color:
+                                        JarvisColors.primary.withOpacity(0.3),
+                                    blurRadius: 12,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getLlmIcon(provider),
+                              size: 18,
+                              color: isSelected
+                                  ? JarvisColors.primary
+                                  : JarvisColors.textMuted,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _getLlmDisplayName(provider),
+                              style: TextStyle(
+                                color: isSelected
+                                    ? JarvisColors.primary
+                                    : JarvisColors.textSecondary,
+                                fontSize: 13,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            if (isSelected) ...[
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.check_circle,
+                                size: 16,
+                                color: JarvisColors.primary,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
 
-            // LLM selection - Modern chip style
-            const Text(
-              'AI MODEL',
-              style: TextStyle(
-                color: JarvisColors.textMuted,
-                fontSize: 10,
-                letterSpacing: 2,
+                // Model selection dropdown
+                if (_selectedLlm == 'openai' &&
+                    (_llmSettings?.availableModels.isNotEmpty ?? false)) ...[
+                  const Text(
+                    'SELECT MODEL',
+                    style: TextStyle(
+                      color: JarvisColors.textMuted,
+                      fontSize: 10,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: JarvisColors.background,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: JarvisColors.panelBorder),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _llmSettings?.availableModels
+                                    .contains(_modelController.text) ==
+                                true
+                            ? _modelController.text
+                            : _llmSettings?.availableModels.first,
+                        isExpanded: true,
+                        dropdownColor: JarvisColors.surface,
+                        icon: Icon(Icons.keyboard_arrow_down,
+                            color: JarvisColors.primary),
+                        style: TextStyle(
+                            color: JarvisColors.textPrimary, fontSize: 13),
+                        items:
+                            (_llmSettings?.availableModels ?? []).map((model) {
+                          return DropdownMenuItem<String>(
+                            value: model,
+                            child: Text(
+                              model,
+                              style: TextStyle(
+                                color: model == _modelController.text
+                                    ? JarvisColors.primary
+                                    : JarvisColors.textPrimary,
+                                fontWeight: model == _modelController.text
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _modelController.text = value);
+                            _updateLlm();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Current model display
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: JarvisColors.background.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: JarvisColors.panelBorder.withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.memory,
+                          size: 16, color: JarvisColors.textMuted),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Active: ',
+                        style: TextStyle(
+                          color: JarvisColors.textMuted,
+                          fontSize: 11,
+                        ),
+                      ),
+                      Text(
+                        _llmSettings?.model ?? 'Default',
+                        style: TextStyle(
+                          color: JarvisColors.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 24),
+
+              // Backend selection
+              const Text(
+                'BACKEND',
+                style: TextStyle(
+                  color: JarvisColors.textMuted,
+                  fontSize: 10,
+                  letterSpacing: 2,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // Provider chips
-            if (_llmSettings != null) ...[
+              // Backend toggle chips
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: (_llmSettings?.availableProviders ?? ['mock'])
-                    .map((provider) {
-                  final isSelected = _selectedLlm == provider;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() => _selectedLlm = provider);
-                      _updateLlm();
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? JarvisColors.primary.withOpacity(0.2)
-                            : JarvisColors.background,
-                        border: Border.all(
-                          color: isSelected
-                              ? JarvisColors.primary
-                              : JarvisColors.panelBorder,
-                          width: isSelected ? 2 : 1,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: JarvisColors.primary.withOpacity(0.3),
-                                  blurRadius: 12,
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _getLlmIcon(provider),
-                            size: 18,
-                            color: isSelected
-                                ? JarvisColors.primary
-                                : JarvisColors.textMuted,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _getLlmDisplayName(provider),
-                            style: TextStyle(
-                              color: isSelected
-                                  ? JarvisColors.primary
-                                  : JarvisColors.textSecondary,
-                              fontSize: 13,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          if (isSelected) ...[
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.check_circle,
-                              size: 16,
-                              color: JarvisColors.primary,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-
-              // Model selection dropdown
-              if (_selectedLlm == 'openai' &&
-                  (_llmSettings?.availableModels.isNotEmpty ?? false)) ...[
-                const Text(
-                  'SELECT MODEL',
-                  style: TextStyle(
-                    color: JarvisColors.textMuted,
-                    fontSize: 10,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: JarvisColors.background,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: JarvisColors.panelBorder),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _llmSettings?.availableModels
-                                  .contains(_modelController.text) ==
-                              true
-                          ? _modelController.text
-                          : _llmSettings?.availableModels.first,
-                      isExpanded: true,
-                      dropdownColor: JarvisColors.surface,
-                      icon: Icon(Icons.keyboard_arrow_down,
-                          color: JarvisColors.primary),
-                      style: TextStyle(
-                          color: JarvisColors.textPrimary, fontSize: 13),
-                      items: (_llmSettings?.availableModels ?? []).map((model) {
-                        return DropdownMenuItem<String>(
-                          value: model,
-                          child: Text(
-                            model,
-                            style: TextStyle(
-                              color: model == _modelController.text
-                                  ? JarvisColors.primary
-                                  : JarvisColors.textPrimary,
-                              fontWeight: model == _modelController.text
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                            ),
+                children: [
+                  _buildBackendChip(
+                    icon: Icons.computer,
+                    label: 'Local',
+                    isSelected: AppConfig.isLocalBackend,
+                    onTap: () async {
+                      await AppConfig.setBackendMode(AppConfig.localMode);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Switched to Local backend. Restart app to apply.'),
+                            duration: Duration(seconds: 3),
                           ),
                         );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => _modelController.text = value);
-                          _updateLlm();
-                        }
-                      },
-                    ),
+                      }
+                      setState(() {});
+                    },
                   ),
+                  _buildBackendChip(
+                    icon: Icons.cloud,
+                    label: 'Cloud',
+                    isSelected: AppConfig.isCloudBackend,
+                    onTap: () async {
+                      await AppConfig.setBackendMode(AppConfig.cloudMode);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Switched to Cloud backend. Restart app to apply.'),
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      }
+                      setState(() {});
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Current: ${AppConfig.apiBaseUrl}',
+                style: TextStyle(
+                  color: JarvisColors.textMuted,
+                  fontSize: 10,
                 ),
-                const SizedBox(height: 16),
-              ],
+              ),
 
-              // Current model display
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: JarvisColors.background.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: JarvisColors.panelBorder.withOpacity(0.5)),
+              const SizedBox(height: 24),
+
+              // About section
+              const Text(
+                'ABOUT',
+                style: TextStyle(
+                  color: JarvisColors.textMuted,
+                  fontSize: 10,
+                  letterSpacing: 2,
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.memory, size: 16, color: JarvisColors.textMuted),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Active: ',
-                      style: TextStyle(
-                        color: JarvisColors.textMuted,
-                        fontSize: 11,
-                      ),
-                    ),
-                    Text(
-                      _llmSettings?.model ?? 'Default',
-                      style: TextStyle(
-                        color: JarvisColors.primary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'SPEDA v0.1.0',
+                style: TextStyle(
+                  color: JarvisColors.textPrimary,
+                  fontSize: 12,
+                ),
+              ),
+              const Text(
+                'Personal Executive Digital Assistant',
+                style: TextStyle(
+                  color: JarvisColors.textMuted,
+                  fontSize: 11,
                 ),
               ),
             ],
-
-            const SizedBox(height: 24),
-
-            // Backend selection
-            const Text(
-              'BACKEND',
-              style: TextStyle(
-                color: JarvisColors.textMuted,
-                fontSize: 10,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Backend toggle chips
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _buildBackendChip(
-                  icon: Icons.computer,
-                  label: 'Local',
-                  isSelected: AppConfig.isLocalBackend,
-                  onTap: () async {
-                    await AppConfig.setBackendMode(AppConfig.localMode);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Switched to Local backend. Restart app to apply.'),
-                          duration: Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                    setState(() {});
-                  },
-                ),
-                _buildBackendChip(
-                  icon: Icons.cloud,
-                  label: 'Cloud',
-                  isSelected: AppConfig.isCloudBackend,
-                  onTap: () async {
-                    await AppConfig.setBackendMode(AppConfig.cloudMode);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Switched to Cloud backend. Restart app to apply.'),
-                          duration: Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                    setState(() {});
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Current: ${AppConfig.apiBaseUrl}',
-              style: TextStyle(
-                color: JarvisColors.textMuted,
-                fontSize: 10,
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // About section
-            const Text(
-              'ABOUT',
-              style: TextStyle(
-                color: JarvisColors.textMuted,
-                fontSize: 10,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'SPEDA v0.1.0',
-              style: TextStyle(
-                color: JarvisColors.textPrimary,
-                fontSize: 12,
-              ),
-            ),
-            const Text(
-              'Personal Executive Digital Assistant',
-              style: TextStyle(
-                color: JarvisColors.textMuted,
-                fontSize: 11,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

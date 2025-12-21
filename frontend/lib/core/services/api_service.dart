@@ -328,6 +328,54 @@ class ApiService {
     }
   }
 
+  // ==================== Voice ====================
+
+  /// Send a voice message (for voice mode)
+  /// Returns just the text response (no streaming)
+  Future<String> sendVoiceMessage(String message) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/chat'),
+      headers: _headers,
+      body: jsonEncode({
+        'message': message,
+        'timezone': 'Europe/Istanbul',
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['response'] ?? '';
+    } else {
+      throw ApiException(
+        statusCode: response.statusCode,
+        message: 'Failed to send voice message',
+      );
+    }
+  }
+
+  /// Get TTS audio URL from backend
+  /// Backend generates audio using OpenAI TTS and returns a URL
+  Future<String> getTTSAudio(String text, {String voice = 'onyx'}) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/api/voice/tts'),
+      headers: _headers,
+      body: jsonEncode({
+        'text': text,
+        'voice': voice,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['audio_url'] ?? '';
+    } else {
+      throw ApiException(
+        statusCode: response.statusCode,
+        message: 'Failed to generate TTS audio',
+      );
+    }
+  }
+
   // ==================== Tasks ====================
 
   /// Get all tasks

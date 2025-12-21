@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/services/api_service.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/models/api_response.dart';
 
 /// Task provider for managing tasks state.
 /// Supports both local tasks and Google Tasks.
 class TaskProvider extends ChangeNotifier {
   final ApiService _apiService;
+  final NotificationService _notificationService = NotificationService();
 
   List<TaskModel> _localTasks = [];
   List<GoogleTask> _googleTasks = [];
@@ -106,14 +108,32 @@ class TaskProvider extends ChangeNotifier {
           dueDate: dueDate,
         );
         _googleTasks.insert(0, task);
+
+        // Schedule notification if due date is set
+        if (dueDate != null) {
+          await _notificationService.scheduleTaskReminder(
+            taskId: task.id,
+            taskTitle: task.title,
+            dueTime: dueDate,
+            minutesBefore: 60, // 1 hour before
+          );
+        }
       } else {
         final task = await _apiService.createTask(
           title: title,
           notes: notes,
           dueDate: dueDate,
         );
-        if (task != null) {
-          _localTasks.insert(0, task);
+        _localTasks.insert(0, task);
+
+        // Schedule notification if due date is set
+        if (dueDate != null) {
+          await _notificationService.scheduleTaskReminder(
+            taskId: task.id.toString(),
+            taskTitle: task.title,
+            dueTime: dueDate,
+            minutesBefore: 60, // 1 hour before
+          );
         }
       }
       notifyListeners();
