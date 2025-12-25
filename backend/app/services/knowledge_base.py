@@ -1,6 +1,8 @@
 """Knowledge Base Service - Vector storage with ChromaDB and OpenAI embeddings."""
 
+import asyncio
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Optional
 
@@ -9,6 +11,9 @@ from chromadb.config import Settings
 from openai import OpenAI
 
 from app.config import get_settings
+
+# Thread pool for running blocking OpenAI calls
+_executor = ThreadPoolExecutor(max_workers=4)
 
 
 class KnowledgeBaseService:
@@ -54,13 +59,23 @@ class KnowledgeBaseService:
             metadata={"description": "Indexed documents and files"}
         )
     
-    def _get_embedding(self, text: str) -> list[float]:
-        """Get OpenAI embedding for text."""
+    def _get_embedding_sync(self, text: str) -> list[float]:
+        """Get OpenAI embedding for text (synchronous, for thread pool)."""
         response = self.openai_client.embeddings.create(
             model=self.embedding_model,
             input=text,
         )
         return response.data[0].embedding
+    
+    async def _get_embedding(self, text: str) -> list[float]:
+        """Get OpenAI embedding for text (async, non-blocking)."""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(_executor, self._get_embedding_sync, text)
+    
+    async def _get_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
+        """Get embeddings for multiple texts in parallel."""
+        tasks = [self._get_embedding(text) for text in texts]
+        return await asyncio.gather(*tasks)
     
     # ==================== Notes (Quick Memories) ====================
     
@@ -73,8 +88,8 @@ class KnowledgeBaseService:
         """Add a quick note/memory to the knowledge base."""
         note_id = f"note_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
         
-        # Get embedding
-        embedding = self._get_embedding(content)
+        # Get embedding (async, non-blocking)
+        embedding = await self._get_embedding(content)
         
         # Store in ChromaDB
         self.notes_collection.add(
@@ -102,7 +117,7 @@ class KnowledgeBaseService:
         category: str | None = None,
     ) -> list[dict[str, Any]]:
         """Search notes by semantic similarity."""
-        query_embedding = self._get_embedding(query)
+        query_embedding = await self._get_embedding(query)
         
         where_filter = None
         if category:
@@ -161,7 +176,7 @@ class KnowledgeBaseService:
         
         # Combine title and content for embedding
         full_text = f"{title}\n\n{content}"
-        embedding = self._get_embedding(full_text)
+        embedding = await self._get_embedding(full_text)
         
         self.knowledge_collection.add(
             ids=[knowledge_id],
@@ -190,7 +205,7 @@ class KnowledgeBaseService:
         category: str | None = None,
     ) -> list[dict[str, Any]]:
         """Search knowledge base by semantic similarity."""
-        query_embedding = self._get_embedding(query)
+        query_embedding = await self._get_embedding(query)
         
         where_filter = None
         if category:
@@ -229,25 +244,38 @@ class KnowledgeBaseService:
         # Split content into chunks
         chunks = self._chunk_text(content, chunk_size)
         
+        if not chunks:
+            return {
+                "success": False,
+                "message": "No content to index",
+            }
+        
         doc_id_base = f"doc_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
-        for i, chunk in enumerate(chunks):
-            chunk_id = f"{doc_id_base}_chunk_{i}"
-            embedding = self._get_embedding(chunk)
-            
-            self.documents_collection.add(
-                ids=[chunk_id],
-                embeddings=[embedding],
-                documents=[chunk],
-                metadatas=[{
-                    "filename": filename,
-                    "file_type": file_type,
-                    "chunk_index": i,
-                    "total_chunks": len(chunks),
-                    "created_at": datetime.now().isoformat(),
-                    "type": "document",
-                }]
-            )
+        # Get all embeddings in parallel (non-blocking)
+        embeddings = await self._get_embeddings_batch(chunks)
+        
+        # Prepare batch data for ChromaDB
+        chunk_ids = [f"{doc_id_base}_chunk_{i}" for i in range(len(chunks))]
+        metadatas = [
+            {
+                "filename": filename,
+                "file_type": file_type,
+                "chunk_index": i,
+                "total_chunks": len(chunks),
+                "created_at": datetime.now().isoformat(),
+                "type": "document",
+            }
+            for i in range(len(chunks))
+        ]
+        
+        # Add all chunks in a single batch operation
+        self.documents_collection.add(
+            ids=chunk_ids,
+            embeddings=embeddings,
+            documents=chunks,
+            metadatas=metadatas,
+        )
         
         return {
             "success": True,
@@ -263,7 +291,7 @@ class KnowledgeBaseService:
         filename: str | None = None,
     ) -> list[dict[str, Any]]:
         """Search documents by semantic similarity."""
-        query_embedding = self._get_embedding(query)
+        query_embedding = await self._get_embedding(query)
         
         where_filter = None
         if filename:
