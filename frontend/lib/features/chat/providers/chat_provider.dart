@@ -127,8 +127,8 @@ class ChatProvider extends ChangeNotifier {
   }
 
   /// Send a message with streaming response
-  Future<void> sendMessage(String message) async {
-    if (message.trim().isEmpty) return;
+  Future<void> sendMessage(String message, {List<String>? images}) async {
+    if (message.trim().isEmpty && (images == null || images.isEmpty)) return;
 
     // Add user message
     _messages = [
@@ -162,6 +162,7 @@ class ChatProvider extends ChangeNotifier {
       await for (final event in _apiService.streamMessage(
         message: message,
         conversationId: _conversationId,
+        images: images,
       )) {
         switch (event.type) {
           case 'start':
@@ -487,6 +488,7 @@ class ChatProvider extends ChangeNotifier {
       await for (final event in _apiService.streamMessage(
         message: message,
         conversationId: _conversationId,
+        // Note: images not supported for resend
       )) {
         switch (event.type) {
           case 'start':

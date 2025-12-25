@@ -617,6 +617,7 @@ class ApiService {
     required String message,
     String timezone = 'Europe/Istanbul',
     int? conversationId,
+    List<String>? images,
   }) async* {
     final queryParams = conversationId != null
         ? '?conversation_id=$conversationId'
@@ -630,6 +631,7 @@ class ApiService {
     request.body = jsonEncode({
       'message': message,
       'timezone': timezone,
+      if (images != null && images.isNotEmpty) 'images': images,
     });
 
     final streamedResponse = await _client.send(request);

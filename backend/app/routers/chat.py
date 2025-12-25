@@ -244,6 +244,13 @@ After executing any function, provide a natural, conversational response."""
         {"role": "system", "content": system_prompt},
         *context_messages,
     ]
+    
+    # If images are provided, use vision format for the last user message
+    if request.images and llm._supports_vision():
+        # The last message should be the user message we just added
+        # Replace it with a vision-formatted message
+        if messages and messages[-1].get("role") == "user":
+            messages[-1] = llm.build_vision_message(request.message, request.images)
 
     async def generate():
         full_response = ""
