@@ -158,6 +158,11 @@ async def chat_stream(
     memory_service = MemoryService(db, llm)
     function_executor = FunctionExecutor()
     functions = get_function_definitions()
+    try:
+        tool_names = [f.get("function", {}).get("name") for f in functions]
+        print(f"[DEBUG] Function tools loaded: {len(tool_names)} -> {tool_names}")
+    except Exception:
+        print("[DEBUG] Could not list function tools")
 
     # Build memory context (stored facts)
     memory_context = await memory_service.build_context_from_memory()

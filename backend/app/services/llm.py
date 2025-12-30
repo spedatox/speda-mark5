@@ -618,6 +618,10 @@ class MockLLMService(LLMService):
         if any(word in last_user_message for word in ["calendar", "takvim"]):
             return {"type": "function_call", "id": "mock_2", "name": "get_calendar_events", "arguments": {}}
         
+        if any(word in last_user_message for word in ["gmail", "mail", "email", "inbox", "messages"]):
+            args = {"unread_only": True, "important_only": True, "max_results": 5}
+            return {"type": "function_call", "id": "mock_3", "name": "get_gmail_messages", "arguments": args}
+        
         response = await self.generate_response(messages, temperature, max_tokens, images)
         return {"type": "message", "content": response}
 
