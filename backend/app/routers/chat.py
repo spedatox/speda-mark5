@@ -301,11 +301,13 @@ After executing any function, provide a natural, conversational response."""
             # If we got a function result, generate a natural language response
             if function_result:
                 # Add function result to messages and get a natural response
+                # OpenAI Responses expects function call IDs to start with "fc"
+                tool_call_id = "fc_1"
                 messages.append({
                     "role": "assistant",
                     "content": None,
                     "tool_calls": [{
-                        "id": "call_1",
+                        "id": tool_call_id,
                         "type": "function",
                         "function": {
                             "name": function_result["name"],
@@ -315,7 +317,7 @@ After executing any function, provide a natural, conversational response."""
                 })
                 messages.append({
                     "role": "tool",
-                    "tool_call_id": "call_1",
+                    "tool_call_id": tool_call_id,
                     "content": json.dumps(function_result["result"]),
                 })
                 
