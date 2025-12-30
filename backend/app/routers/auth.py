@@ -1,9 +1,12 @@
 """OAuth Authentication Router - Handles Google and Microsoft OAuth flows."""
 
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
+from app.config import get_settings
 from app.services.google_auth import GoogleAuthService
 from app.services.microsoft_auth import MicrosoftAuthService
 
@@ -22,8 +25,21 @@ class MobileTokenRequest(BaseModel):
 @router.get("/google/login")
 async def google_login(redirect_uri: str | None = None, platform: str | None = None):
     """Initiate Google OAuth2 flow (web/mobile)."""
+    settings = get_settings()
     auth_service = GoogleAuthService()
-    auth_url = auth_service.get_auth_url(redirect_uri=redirect_uri)
+    
+    # Only allow redirects on our known domains (speda.spedatox.systems) or localhost for dev
+    allowed_hosts = {"speda.spedatox.systems", "localhost"}
+    redirect = settings.google_redirect_uri
+
+    if redirect_uri:
+        host = urlparse(redirect_uri).hostname or ""
+        if host in allowed_hosts:
+            redirect = redirect_uri
+        else:
+            raise HTTPException(status_code=400, detail="Invalid redirect_uri host. Use speda.spedatox.systems or localhost.")
+
+    auth_url = auth_service.get_auth_url(redirect_uri=redirect)
     if platform == "mobile" and redirect_uri:
         auth_url += f"&state=mobile"
     return {"auth_url": auth_url}
@@ -35,9 +51,21 @@ async def google_callback(
     redirect_uri: str | None = None,
 ):
     """Handle Google OAuth2 callback."""
+    settings = get_settings()
     auth_service = GoogleAuthService()
+    
+    # Enforce same redirect validation as login
+    allowed_hosts = {"speda.spedatox.systems", "localhost"}
+    redirect = settings.google_redirect_uri
+    if redirect_uri:
+        host = urlparse(redirect_uri).hostname or ""
+        if host in allowed_hosts:
+            redirect = redirect_uri
+        else:
+            raise HTTPException(status_code=400, detail="Invalid redirect_uri host. Use speda.spedatox.systems or localhost.")
+
     try:
-        credentials = await auth_service.handle_callback(code, redirect_uri=redirect_uri)
+        credentials = await auth_service.handle_callback(code, redirect_uri=redirect)
         return {
             "status": "success",
             "message": "Google authentication successful! You can close this window.",
