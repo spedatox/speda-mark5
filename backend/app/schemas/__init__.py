@@ -216,6 +216,18 @@ class BriefingEmail(BaseModel):
     status: EmailStatus
 
 
+class BriefingInboxEmail(BaseModel):
+    """Inbox email summary for briefing."""
+
+    id: str
+    subject: str
+    sender: Optional[str] = None
+    snippet: Optional[str] = None
+    received_at: Optional[datetime] = None
+    is_unread: bool = False
+    is_important: bool = False
+
+
 class WeatherInfo(BaseModel):
     """Weather information for briefing."""
 
@@ -235,6 +247,7 @@ class BriefingResponse(BaseModel):
     tasks_overdue: list[BriefingTask]
     events_today: list[BriefingEvent]
     pending_emails: list[BriefingEmail]
+    important_emails: list[BriefingInboxEmail] = Field(default_factory=list)
     weather: Optional[WeatherInfo] = None
     news_summary: Optional[list[str]] = None
 

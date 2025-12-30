@@ -425,6 +425,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         Text(
                           message.processingStatus!,
                           style: TextStyle(
+                            fontFamily: 'Inter',
                             color: JarvisColors.textMuted,
                             fontSize: 12,
                             fontWeight: FontWeight.w300,
@@ -443,6 +444,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             ? Text(
                                 message.content,
                                 style: TextStyle(
+                                  fontFamily: 'Inter',
                                   color: JarvisColors.primary,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w300,
@@ -461,6 +463,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   Text(
                     _formatTime(message.timestamp),
                     style: const TextStyle(
+                      fontFamily: 'Inter',
                       color: JarvisColors.textMuted,
                       fontSize: 9,
                       letterSpacing: 1,
@@ -530,31 +533,37 @@ class _ChatScreenState extends State<ChatScreen> {
       selectable: true,
       styleSheet: MarkdownStyleSheet(
         p: TextStyle(
+          fontFamily: 'Inter',
           color: JarvisColors.textPrimary,
           fontSize: 13,
           fontWeight: FontWeight.w300,
           height: 1.5,
         ),
         h1: TextStyle(
+          fontFamily: 'Inter',
           color: JarvisColors.primary,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
         h2: TextStyle(
+          fontFamily: 'Inter',
           color: JarvisColors.primary,
           fontSize: 16,
           fontWeight: FontWeight.w600,
         ),
         h3: TextStyle(
+          fontFamily: 'Inter',
           color: JarvisColors.primary,
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
         strong: TextStyle(
+          fontFamily: 'Inter',
           color: JarvisColors.textPrimary,
           fontWeight: FontWeight.w600,
         ),
         em: TextStyle(
+          fontFamily: 'Inter',
           color: JarvisColors.textPrimary,
           fontStyle: FontStyle.italic,
         ),
@@ -681,12 +690,14 @@ class _ChatScreenState extends State<ChatScreen> {
                       controller: _textController,
                       focusNode: _focusNode,
                       style: const TextStyle(
+                        fontFamily: 'Inter',
                         color: JarvisColors.textPrimary,
                         fontSize: 14,
                       ),
                       decoration: const InputDecoration(
                         hintText: 'Message Speda...',
                         hintStyle: TextStyle(
+                          fontFamily: 'Inter',
                           color: JarvisColors.textMuted,
                           letterSpacing: 0.5,
                         ),
@@ -1007,6 +1018,7 @@ class _ConversationTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
+                      fontFamily: 'Inter',
                       color: JarvisColors.primary,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -1019,6 +1031,7 @@ class _ConversationTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
+                      fontFamily: 'Inter',
                       color: JarvisColors.textMuted,
                       fontSize: 11,
                       height: 1.3,
@@ -1030,6 +1043,7 @@ class _ConversationTile extends StatelessWidget {
                       Text(
                         timeAgo,
                         style: TextStyle(
+                          fontFamily: 'Inter',
                           color: JarvisColors.textMuted,
                           fontSize: 10,
                           letterSpacing: 0.5,
@@ -1039,6 +1053,7 @@ class _ConversationTile extends StatelessWidget {
                       Text(
                         '${conversation.messageCount} messages',
                         style: TextStyle(
+                          fontFamily: 'Inter',
                           color: JarvisColors.textMuted,
                           fontSize: 10,
                           letterSpacing: 0.5,

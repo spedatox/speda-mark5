@@ -155,6 +155,7 @@ class BriefingModel extends Equatable {
   final List<BriefingTask> tasksOverdue;
   final List<BriefingEvent> eventsToday;
   final List<BriefingEmail> pendingEmails;
+  final List<BriefingInboxEmail> importantEmails;
   final WeatherInfo? weather;
   final List<String>? newsSummary;
 
@@ -165,6 +166,7 @@ class BriefingModel extends Equatable {
     required this.tasksOverdue,
     required this.eventsToday,
     required this.pendingEmails,
+    required this.importantEmails,
     this.weather,
     this.newsSummary,
   });
@@ -189,6 +191,11 @@ class BriefingModel extends Equatable {
               ?.map((e) => BriefingEmail.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      importantEmails: (json['important_emails'] as List<dynamic>?)
+              ?.map(
+                  (e) => BriefingInboxEmail.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
       weather: json['weather'] != null
           ? WeatherInfo.fromJson(json['weather'] as Map<String, dynamic>)
           : null,
@@ -204,6 +211,7 @@ class BriefingModel extends Equatable {
         tasksOverdue,
         eventsToday,
         pendingEmails,
+        importantEmails,
         weather,
         newsSummary
       ];
@@ -287,6 +295,44 @@ class BriefingEmail extends Equatable {
 
   @override
   List<Object?> get props => [id, subject, status];
+}
+
+class BriefingInboxEmail extends Equatable {
+  final String id;
+  final String subject;
+  final String? sender;
+  final String? snippet;
+  final DateTime? receivedAt;
+  final bool isUnread;
+  final bool isImportant;
+
+  const BriefingInboxEmail({
+    required this.id,
+    required this.subject,
+    this.sender,
+    this.snippet,
+    this.receivedAt,
+    this.isUnread = false,
+    this.isImportant = false,
+  });
+
+  factory BriefingInboxEmail.fromJson(Map<String, dynamic> json) {
+    return BriefingInboxEmail(
+      id: json['id'] as String? ?? '',
+      subject: json['subject'] as String? ?? '(No Subject)',
+      sender: json['sender'] as String?,
+      snippet: json['snippet'] as String?,
+      receivedAt: json['received_at'] != null
+          ? DateTime.parse(json['received_at'] as String)
+          : null,
+      isUnread: json['is_unread'] as bool? ?? false,
+      isImportant: json['is_important'] as bool? ?? false,
+    );
+  }
+
+  @override
+  List<Object?> get props =>
+      [id, subject, sender, snippet, receivedAt, isUnread, isImportant];
 }
 
 class WeatherInfo extends Equatable {

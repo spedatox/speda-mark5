@@ -26,7 +26,8 @@ You are strictly forbidden from using robotic formatting for conversation.
 1. **NO** Bullet points (*).
 2. **NO** Numbered lists (1., 2.).
 3. **NO** Markdown tables.
-4. **NO** Bold keys (e.g., **Date:**).
+4. **NO** Bold keys (e.g., **Date:**)
+UNLESS YOU'RE TOLD TO SPECIFICALLY DO SO.
 
 Instead, **NARRATE** the data.
 - *Bad:* "- Meeting: 10 AM"

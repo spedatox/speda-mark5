@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from app.services.google_calendar import GoogleCalendarService
 from app.services.google_tasks import GoogleTasksService
+from app.services.google_gmail import GoogleGmailService
 from app.services.weather import WeatherService
 from app.services.news import NewsService
 from app.services.search import TavilySearchService
@@ -155,6 +156,36 @@ SPEDA_FUNCTIONS = [
                     }
                 },
                 "required": ["task_id"]
+            }
+        }
+    },
+
+    # ==================== Gmail Functions ====================
+    {
+        "type": "function",
+        "function": {
+            "name": "get_gmail_messages",
+            "description": "Read recent Gmail messages. Use this when the user asks you to check their inbox or find important/unread emails.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of messages to fetch",
+                        "default": 5
+                    },
+                    "unread_only": {
+                        "type": "boolean",
+                        "description": "Only include unread emails",
+                        "default": True
+                    },
+                    "important_only": {
+                        "type": "boolean",
+                        "description": "Prioritize Gmail Important label",
+                        "default": True
+                    }
+                },
+                "required": []
             }
         }
     },
@@ -445,6 +476,7 @@ class FunctionExecutor:
     def __init__(self):
         self.calendar_service = GoogleCalendarService()
         self.tasks_service = GoogleTasksService()
+        self.gmail_service = GoogleGmailService()
         self.weather_service = WeatherService()
         self.news_service = NewsService()
         self.search_service = TavilySearchService()
@@ -464,6 +496,8 @@ class FunctionExecutor:
                 return await self._complete_task(**arguments)
             elif function_name == "delete_task":
                 return await self._delete_task(**arguments)
+            elif function_name == "get_gmail_messages":
+                return await self._get_gmail_messages(**arguments)
             elif function_name == "get_current_weather":
                 return await self._get_current_weather(**arguments)
             elif function_name == "get_weather_forecast":
@@ -634,6 +668,73 @@ class FunctionExecutor:
             return {
                 "success": True,
                 "message": "Task deleted successfully",
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    # ==================== Gmail Implementations ====================
+
+    async def _get_gmail_messages(
+        self,
+        max_results: int = 5,
+        unread_only: bool = True,
+        important_only: bool = True,
+    ) -> dict:
+        """Get Gmail messages from the inbox."""
+        try:
+            messages = await self.gmail_service.get_important_messages(
+                max_results=max_results,
+                unread_only=unread_only,
+            )
+
+            # If caller does not want to enforce important only, fall back to INBOX
+            if not important_only and not messages:
+                messages = await self.gmail_service.list_messages(
+                    label_ids=["INBOX"] + (["UNREAD"] if unread_only else []),
+                    max_results=max_results,
+                )
+                # Fetch full details for fallback list
+                detailed = []
+                for msg in messages:
+                    full_msg = await self.gmail_service.get_message(msg.get("id", ""))
+                    payload = full_msg.get("payload", {})
+                    headers = {h.get("name"): h.get("value") for h in payload.get("headers", [])}
+                    detailed.append({
+                        "id": full_msg.get("id"),
+                        "subject": headers.get("Subject", "(No Subject)"),
+                        "from": headers.get("From", ""),
+                        "snippet": full_msg.get("snippet", ""),
+                        "received_at": full_msg.get("internalDate"),
+                        "is_unread": "UNREAD" in full_msg.get("labelIds", []),
+                        "is_important": "IMPORTANT" in full_msg.get("labelIds", []),
+                    })
+                messages = detailed
+
+            formatted_messages = []
+            for msg in messages or []:
+                received_at = msg.get("received_at")
+                if isinstance(received_at, datetime):
+                    received_at = received_at.isoformat()
+                elif isinstance(received_at, str) and received_at.isdigit():
+                    try:
+                        received_at = datetime.fromtimestamp(int(received_at) / 1000).isoformat()
+                    except Exception:
+                        pass
+                formatted_messages.append({
+                    "id": msg.get("id"),
+                    "thread_id": msg.get("thread_id"),
+                    "subject": msg.get("subject"),
+                    "from": msg.get("from"),
+                    "snippet": msg.get("snippet"),
+                    "received_at": received_at,
+                    "is_unread": bool(msg.get("is_unread")),
+                    "is_important": bool(msg.get("is_important")),
+                })
+
+            return {
+                "success": True,
+                "messages": formatted_messages,
+                "count": len(formatted_messages),
             }
         except Exception as e:
             return {"success": False, "error": str(e)}

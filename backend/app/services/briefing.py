@@ -8,11 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.task import TaskService
 from app.services.calendar import CalendarService
 from app.services.email import EmailService
+from app.services.google_calendar import GoogleCalendarService
+from app.services.google_tasks import GoogleTasksService
+from app.services.google_auth import GoogleAuthService
+from app.services.google_gmail import GoogleGmailService
 from app.schemas import (
     BriefingResponse,
     BriefingTask,
     BriefingEvent,
     BriefingEmail,
+    BriefingInboxEmail,
     WeatherInfo,
 )
 from app.models import TaskStatus, EmailStatus
@@ -22,8 +27,8 @@ class BriefingService:
     """Service for generating daily briefings.
     
     Provides a comprehensive overview of:
-    - Pending and overdue tasks
-    - Today's events
+    - Pending and overdue tasks from Google Tasks
+    - Today's events from Google Calendar
     - Pending emails
     - Weather (if configured)
     - News (mocked for now)
@@ -34,6 +39,10 @@ class BriefingService:
         self.task_service = TaskService(db)
         self.calendar_service = CalendarService(db)
         self.email_service = EmailService(db)
+        self.google_auth_service = GoogleAuthService()
+        self.google_calendar_service = GoogleCalendarService()
+        self.google_tasks_service = GoogleTasksService()
+        self.google_gmail_service = GoogleGmailService()
 
     async def generate_briefing(
         self,
@@ -42,12 +51,48 @@ class BriefingService:
         """Generate the daily briefing."""
         now = datetime.utcnow()
 
-        # Get tasks
+        # Check if Google is authenticated
+        is_google_authenticated = self.google_auth_service.is_authenticated()
+        print(f"[BRIEFING] Google authenticated: {is_google_authenticated}")
+
+        # Fetch tasks from Google Tasks if authenticated
+        google_tasks = []
+        if is_google_authenticated:
+            try:
+                google_tasks = await self.google_tasks_service.get_tasks(show_completed=False)
+                print(f"[BRIEFING] Fetched {len(google_tasks)} Google Tasks")
+            except Exception as e:
+                print(f"[BRIEFING] Could not fetch Google Tasks: {e}")
+
+        # Get local tasks as fallback
         pending_tasks = await self.task_service.list_pending_tasks()
         overdue_tasks = await self.task_service.list_overdue_tasks()
+        print(f"[BRIEFING] Local tasks: {len(pending_tasks)} pending, {len(overdue_tasks)} overdue")
 
-        # Get today's events
+        # Fetch today's events from Google Calendar if authenticated
+        google_events = []
+        if is_google_authenticated:
+            try:
+                google_events = await self.google_calendar_service.get_today_events()
+                print(f"[BRIEFING] Fetched {len(google_events)} Google Calendar events")
+            except Exception as e:
+                print(f"[BRIEFING] Could not fetch Google Calendar events: {e}")
+
+        # Get local events as fallback
         events_today = await self.calendar_service.list_events_today()
+        print(f"[BRIEFING] Local events: {len(events_today)}")
+
+        # Fetch important Gmail messages
+        important_gmail_messages = []
+        if is_google_authenticated:
+            try:
+                important_gmail_messages = await self.google_gmail_service.get_important_messages(
+                    max_results=5,
+                    unread_only=True,
+                )
+                print(f"[BRIEFING] Fetched {len(important_gmail_messages)} important Gmail messages")
+            except Exception as e:
+                print(f"[BRIEFING] Could not fetch Gmail messages: {e}")
 
         # Get pending emails
         pending_emails = await self.email_service.list_pending_drafts()
@@ -61,38 +106,106 @@ class BriefingService:
         # Get news (mocked for now)
         news = await self._get_news()
 
+        # Convert Google Tasks to BriefingTask format
+        tasks_from_google = []
+        overdue_from_google = []
+        for task in google_tasks:
+            due_date_str = task.get("due")
+            due_date = None
+            is_overdue = False
+            
+            if due_date_str:
+                try:
+                    due_date = datetime.fromisoformat(due_date_str.replace("Z", "+00:00"))
+                    is_overdue = due_date < now
+                except:
+                    pass
+            
+            briefing_task = BriefingTask(
+                id=hash(task.get("id", "")),  # Use hash since Google IDs are strings
+                title=task.get("title", "Untitled Task"),
+                due_date=due_date,
+                is_overdue=is_overdue,
+            )
+            
+            if is_overdue:
+                overdue_from_google.append(briefing_task)
+            else:
+                tasks_from_google.append(briefing_task)
+
+        # Convert Google Calendar events to BriefingEvent format
+        events_from_google = []
+        for event in google_events:
+            start = event.get("start", {})
+            end = event.get("end", {})
+            
+            start_time = None
+            end_time = None
+            
+            # Handle both dateTime and date formats
+            if "dateTime" in start:
+                start_time = datetime.fromisoformat(start["dateTime"].replace("Z", "+00:00"))
+            elif "date" in start:
+                start_time = datetime.fromisoformat(start["date"])
+                
+            if "dateTime" in end:
+                end_time = datetime.fromisoformat(end["dateTime"].replace("Z", "+00:00"))
+            elif "date" in end:
+                end_time = datetime.fromisoformat(end["date"])
+            
+            if start_time:  # Only add if we have at least a start time
+                events_from_google.append(BriefingEvent(
+                    id=hash(event.get("id", "")),
+                    title=event.get("summary", "No Title"),
+                    start_time=start_time,
+                    end_time=end_time,
+                    location=event.get("location"),
+                ))
+
+        # Combine Google data with local data
+        all_pending_tasks = tasks_from_google + [
+            BriefingTask(
+                id=task.id,
+                title=task.title,
+                due_date=task.due_date,
+                is_overdue=False,
+            )
+            for task in pending_tasks
+            if task not in overdue_tasks
+        ]
+        
+        all_overdue_tasks = overdue_from_google + [
+            BriefingTask(
+                id=task.id,
+                title=task.title,
+                due_date=task.due_date,
+                is_overdue=True,
+            )
+            for task in overdue_tasks
+        ]
+        
+        all_events = events_from_google + [
+            BriefingEvent(
+                id=event.id,
+                title=event.title,
+                start_time=event.start_time,
+                end_time=event.end_time,
+                location=event.location,
+            )
+            for event in events_today
+        ]
+        
+        # Sort events by start time
+        all_events.sort(key=lambda e: e.start_time)
+        
+        print(f"[BRIEFING] Final counts - Events: {len(all_events)}, Pending tasks: {len(all_pending_tasks)}, Overdue tasks: {len(all_overdue_tasks)}")
+
         return BriefingResponse(
             date=now,
             greeting=greeting,
-            tasks_pending=[
-                BriefingTask(
-                    id=task.id,
-                    title=task.title,
-                    due_date=task.due_date,
-                    is_overdue=False,
-                )
-                for task in pending_tasks
-                if task not in overdue_tasks
-            ],
-            tasks_overdue=[
-                BriefingTask(
-                    id=task.id,
-                    title=task.title,
-                    due_date=task.due_date,
-                    is_overdue=True,
-                )
-                for task in overdue_tasks
-            ],
-            events_today=[
-                BriefingEvent(
-                    id=event.id,
-                    title=event.title,
-                    start_time=event.start_time,
-                    end_time=event.end_time,
-                    location=event.location,
-                )
-                for event in events_today
-            ],
+            tasks_pending=all_pending_tasks,
+            tasks_overdue=all_overdue_tasks,
+            events_today=all_events,
             pending_emails=[
                 BriefingEmail(
                     id=email.id,
@@ -100,6 +213,22 @@ class BriefingService:
                     status=EmailStatus(email.status.value),
                 )
                 for email in pending_emails
+            ],
+            important_emails=[
+                BriefingInboxEmail(
+                    id=email.get("id", ""),
+                    subject=email.get("subject", "Untitled"),
+                    sender=(
+                        (email.get("from") or {}).get("name")
+                        or (email.get("from") or {}).get("address")
+                        or email.get("from")
+                    ),
+                    snippet=email.get("snippet"),
+                    received_at=email.get("received_at"),
+                    is_unread=bool(email.get("is_unread")),
+                    is_important=bool(email.get("is_important")),
+                )
+                for email in important_gmail_messages
             ],
             weather=weather,
             news_summary=news,
@@ -219,6 +348,16 @@ class BriefingService:
             for email in briefing.pending_emails:
                 lines.append(f"  • {email.subject}")
             lines.append("")
+
+        if briefing.important_emails:
+            lines.append(f"Gmail inbox highlights ({len(briefing.important_emails)}):")
+            for email in briefing.important_emails:
+                sender = email.sender or 'Unknown sender'
+                time_str = email.received_at.strftime('%H:%M') if email.received_at else ''
+                status = 'unread' if email.is_unread else 'read'
+                time_part = f" at {time_str}" if time_str else ''
+                lines.append(f"  - {sender}: {email.subject} [{status}{time_part}]")
+            lines.append('')
 
         # Weather
         if briefing.weather:

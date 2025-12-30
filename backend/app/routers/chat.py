@@ -202,6 +202,9 @@ You have access to the following tools to help the user:
 - complete_task: Mark tasks as done
 - delete_task: Remove tasks
 
+### Gmail
+- get_gmail_messages: Read recent Gmail inbox (unread/important first)
+
 ### Weather & News
 - get_current_weather: Get current weather
 - get_weather_forecast: Get weather forecast
