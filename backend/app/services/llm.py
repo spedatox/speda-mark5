@@ -129,10 +129,19 @@ class OpenAIResponsesService(LLMService):
             
             if role == "tool":
                 # Tool response
+                output_content = content
+                # Wrap plain strings as output_text items for Responses API
+                if isinstance(content, str):
+                    output_content = [{"type": "output_text", "text": content}]
+                elif isinstance(content, list):
+                    output_content = content
+                else:
+                    output_content = [{"type": "output_text", "text": json.dumps(content)}]
+
                 input_items.append({
                     "type": "function_call_output",
                     "call_id": msg.get("tool_call_id", ""),
-                    "output": content,
+                    "output": output_content,
                 })
                 continue
             
@@ -145,7 +154,11 @@ class OpenAIResponsesService(LLMService):
                             "id": tc.get("id", ""),
                             "call_id": tc.get("id", ""),
                             "name": tc["function"]["name"],
-                            "arguments": tc["function"]["arguments"],
+                            "arguments": (
+                                tc["function"]["arguments"]
+                                if isinstance(tc["function"]["arguments"], str)
+                                else json.dumps(tc["function"]["arguments"])
+                            ),
                         })
                 elif content:
                     # Regular assistant message
@@ -265,7 +278,13 @@ class OpenAIResponsesService(LLMService):
             payload["max_output_tokens"] = max_tokens
         
         async with self.http_client.stream("POST", "/responses", json=payload) as response:
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                # Log full error body for troubleshooting
+                body = await response.aread()
+                print(f"[LLM][stream] HTTP {response.status_code}: {body.decode(errors='ignore')}")
+                raise e
             async for line in response.aiter_lines():
                 if line.startswith("data: "):
                     data_str = line[6:]
