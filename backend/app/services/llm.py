@@ -129,19 +129,15 @@ class OpenAIResponsesService(LLMService):
             
             if role == "tool":
                 # Tool response
-                output_content = content
-                # Wrap plain strings as output_text items for Responses API
                 if isinstance(content, str):
-                    output_content = [{"type": "output_text", "text": content}]
-                elif isinstance(content, list):
-                    output_content = content
+                    output_str = content
                 else:
-                    output_content = [{"type": "output_text", "text": json.dumps(content)}]
+                    output_str = json.dumps(content)
 
                 input_items.append({
                     "type": "function_call_output",
                     "call_id": msg.get("tool_call_id", ""),
-                    "output": output_content,
+                    "output": output_str,
                 })
                 continue
             
@@ -241,7 +237,12 @@ class OpenAIResponsesService(LLMService):
             payload["max_output_tokens"] = max_tokens
         
         response = await self.http_client.post("/responses", json=payload)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            body = response.text
+            print(f"[LLM][functions] HTTP {response.status_code}: {body}")
+            raise e
         data = response.json()
         
         # Extract text from output
@@ -395,7 +396,12 @@ class OpenAIResponsesService(LLMService):
         has_function_call = False
         
         async with self.http_client.stream("POST", "/responses", json=payload) as response:
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                body = await response.aread()
+                print(f"[LLM][functions_stream] HTTP {response.status_code}: {body.decode(errors='ignore')}")
+                raise e
             async for line in response.aiter_lines():
                 if line.startswith("data: "):
                     data_str = line[6:]
