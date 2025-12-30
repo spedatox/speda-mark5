@@ -228,7 +228,6 @@ class OpenAIResponsesService(LLMService):
         payload = {
             "model": self.model,
             "input": input_items,
-            "temperature": temperature,
         }
         
         if instructions:
@@ -269,7 +268,6 @@ class OpenAIResponsesService(LLMService):
         payload = {
             "model": self.model,
             "input": input_items,
-            "temperature": temperature,
             "stream": True,
         }
         
@@ -321,7 +319,6 @@ class OpenAIResponsesService(LLMService):
             "input": input_items,
             "tools": tools,
             "tool_choice": "auto",
-            "temperature": temperature,
         }
         
         if instructions:
@@ -380,7 +377,6 @@ class OpenAIResponsesService(LLMService):
             "input": input_items,
             "tools": tools,
             "tool_choice": "auto",
-            "temperature": temperature,
             "stream": True,
         }
         
