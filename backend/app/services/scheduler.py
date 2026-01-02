@@ -6,7 +6,7 @@ from typing import Optional, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_async_session
+from app.database import get_db, async_session_maker
 from app.models import User
 from app.services.google_calendar import GoogleCalendarService
 from app.services.google_tasks import GoogleTasksService
