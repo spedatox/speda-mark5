@@ -24,6 +24,11 @@ jobs:
             git pull origin main
             cd backend
             
+            # BACKUP DATABASE BEFORE DEPLOYMENT
+            echo "📦 Creating database backup..."
+            chmod +x backup-db.sh
+            ./backup-db.sh || echo "⚠️  Backup failed (container might not be running)"
+            
             # Stop and remove old containers (KEEP VOLUMES!)
             docker-compose down --remove-orphans
             
