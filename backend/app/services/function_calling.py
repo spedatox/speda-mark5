@@ -10,6 +10,7 @@ from app.services.google_gmail import GoogleGmailService
 from app.services.weather import WeatherService
 from app.services.news import NewsService
 from app.services.search import TavilySearchService
+from app.services.diagnostics import DiagnosticsService
 
 
 # ==================== Function Definitions ====================
@@ -186,6 +187,61 @@ SPEDA_FUNCTIONS = [
                     }
                 },
                 "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_emails",
+            "description": "Search for emails using Gmail query format (e.g., 'from:sender@example.com', 'subject:meeting', 'after:2024/01/01'). Use this when the user wants to find specific emails.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Gmail search query (e.g., 'from:john', 'subject:invoice', 'is:unread')"
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return",
+                        "default": 10
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "send_email",
+            "description": "Send an email via Gmail. Use this when the user wants to send an email or compose a message.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "to": {
+                        "type": "string",
+                        "description": "Recipient email address"
+                    },
+                    "subject": {
+                        "type": "string",
+                        "description": "Email subject line"
+                    },
+                    "body": {
+                        "type": "string",
+                        "description": "Email body content (plain text)"
+                    },
+                    "cc": {
+                        "type": "string",
+                        "description": "Optional CC addresses (comma-separated)"
+                    },
+                    "bcc": {
+                        "type": "string",
+                        "description": "Optional BCC addresses (comma-separated)"
+                    }
+                },
+                "required": ["to", "subject", "body"]
             }
         }
     },
@@ -370,6 +426,30 @@ SPEDA_FUNCTIONS = [
         }
     },
     
+    # ==================== Diagnostics Functions ====================
+    {
+        "type": "function",
+        "function": {
+            "name": "check_server_status",
+            "description": "Check real-time server health metrics including CPU usage, RAM usage, and disk space. Use this when the user asks about server status, system performance, resource usage, or 'how are you doing?'.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "who_am_i",
+            "description": "Get information about the currently active AI model and provider. Use this when the user asks 'who are you?', 'which AI are you using?', or about AI configuration.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    
     # ==================== Time/Date Functions ====================
     {
         "type": "function",
@@ -498,6 +578,18 @@ class FunctionExecutor:
                 return await self._delete_task(**arguments)
             elif function_name == "get_gmail_messages":
                 return await self._get_gmail_messages(**arguments)
+            elif function_name == "search_emails":
+                return await self._search_emails(**arguments)
+            elif function_name == "send_email":
+                return await self._send_email(**arguments)
+            elif function_name == "check_server_status":
+                return await self._get_system_metrics(**arguments)
+            elif function_name == "who_am_i":
+                return await self._get_ai_configuration(**arguments)
+            elif function_name == "get_system_metrics":
+                return await self._get_system_metrics(**arguments)
+            elif function_name == "get_ai_configuration":
+                return await self._get_ai_configuration(**arguments)
             elif function_name == "get_current_weather":
                 return await self._get_current_weather(**arguments)
             elif function_name == "get_weather_forecast":
@@ -738,6 +830,83 @@ class FunctionExecutor:
             }
         except Exception as e:
             return {"success": False, "error": str(e)}
+    
+    async def _search_emails(
+        self,
+        query: str,
+        max_results: int = 10,
+    ) -> dict:
+        """Search Gmail messages using query."""
+        try:
+            messages = await self.gmail_service.search_messages(
+                query=query,
+                max_results=max_results,
+            )
+            
+            formatted_messages = []
+            for msg in messages or []:
+                received_at = msg.get("received_at")
+                if isinstance(received_at, datetime):
+                    received_at = received_at.isoformat()
+                elif isinstance(received_at, str) and received_at.isdigit():
+                    try:
+                        received_at = datetime.fromtimestamp(int(received_at) / 1000).isoformat()
+                    except Exception:
+                        pass
+                formatted_messages.append({
+                    "id": msg.get("id"),
+                    "subject": msg.get("subject"),
+                    "from": msg.get("from"),
+                    "snippet": msg.get("snippet"),
+                    "received_at": received_at,
+                    "is_unread": bool(msg.get("is_unread")),
+                })
+            
+            return {
+                "success": True,
+                "messages": formatted_messages,
+                "count": len(formatted_messages),
+                "query": query,
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    async def _send_email(
+        self,
+        to: str,
+        subject: str,
+        body: str,
+        cc: Optional[str] = None,
+        bcc: Optional[str] = None,
+    ) -> dict:
+        """Send an email via Gmail."""
+        try:
+            result = await self.gmail_service.send_email(
+                to=to,
+                subject=subject,
+                body=body,
+                cc=cc,
+                bcc=bcc,
+            )
+            
+            return {
+                "success": True,
+                "message": f"Email sent to {to}",
+                "message_id": result.get("id"),
+                "thread_id": result.get("threadId"),
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    # ==================== Diagnostics Implementations ====================
+    
+    async def _get_system_metrics(self) -> dict:
+        """Get system metrics."""
+        return DiagnosticsService.get_system_metrics()
+    
+    async def _get_ai_configuration(self) -> dict:
+        """Get AI configuration."""
+        return DiagnosticsService.get_ai_configuration()
     
     # ==================== Weather Implementations ====================
     

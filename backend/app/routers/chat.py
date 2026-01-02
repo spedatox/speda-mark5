@@ -329,16 +329,24 @@ After executing any function, provide a natural, conversational response."""
                 # Fallback if model returned nothing
                 if not full_response:
                     result_payload = function_result.get("result") or {}
-                    messages_list = result_payload.get("messages") or []
-                    if messages_list:
-                        first = messages_list[0] or {}
-                        subj = first.get("subject") or "No subject"
-                        sender = first.get("from") or {}
-                        sender_str = sender.get("name") or sender.get("address") or str(sender) or "Unknown sender"
-                        snippet = first.get("snippet") or ""
-                        full_response = f"The latest Gmail message is from {sender_str}: {subj}. Snippet: {snippet}"
+                    
+                    # Check if there's an error in the result
+                    if result_payload.get("error"):
+                        error_msg = result_payload.get("error")
+                        full_response = f"I encountered an issue: {error_msg}. Please let me know if you need help with something else."
                     else:
-                        full_response = "I checked Gmail but didn't find any messages to show."
+                        messages_list = result_payload.get("messages") or []
+                        if messages_list:
+                            first = messages_list[0] or {}
+                            subj = first.get("subject") or "No subject"
+                            sender = first.get("from") or {}
+                            sender_str = sender.get("name") or sender.get("address") or str(sender) or "Unknown sender"
+                            snippet = first.get("snippet") or ""
+                            full_response = f"The latest Gmail message is from {sender_str}: {subj}. Snippet: {snippet}"
+                        else:
+                            # Generic empty result message
+                            function_name = function_result.get("name", "unknown")
+                            full_response = f"I completed the {function_name} request, but there were no results to display."
                     yield f"data: {json.dumps({'type': 'chunk', 'content': full_response})}\n\n"
             
             # Save the complete response to database

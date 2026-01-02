@@ -140,3 +140,107 @@ class GoogleGmailService:
             )
 
         return important_messages
+    
+    async def search_messages(
+        self,
+        query: str,
+        max_results: int = 10,
+    ) -> list[dict]:
+        """Search Gmail messages using query format.
+        
+        Examples:
+        - 'from:john@example.com'
+        - 'subject:meeting'
+        - 'after:2024/01/01'
+        - 'is:unread'
+        - 'from:linkedin after:2024-12-01'
+        """
+        messages = await self.list_messages(
+            query=query,
+            max_results=max_results,
+        )
+        
+        search_results: list[dict] = []
+        for msg_ref in messages:
+            msg = await self.get_message(msg_ref.get("id", ""))
+            payload = msg.get("payload", {})
+            headers = {h.get("name"): h.get("value") for h in payload.get("headers", [])}
+            
+            subject = self._decode_header(headers.get("Subject", "(No Subject)"))
+            sender_raw = headers.get("From", "")
+            received_at = self._parse_received_at(headers.get("Date"), msg.get("internalDate"))
+            label_ids_in_msg = msg.get("labelIds", [])
+            
+            search_results.append({
+                "id": msg.get("id"),
+                "thread_id": msg.get("threadId"),
+                "subject": subject,
+                "from": self._parse_sender(sender_raw),
+                "snippet": msg.get("snippet", ""),
+                "received_at": received_at,
+                "is_unread": "UNREAD" in label_ids_in_msg,
+                "is_important": "IMPORTANT" in label_ids_in_msg,
+            })
+        
+        return search_results
+    
+    def _send_message_sync(
+        self,
+        to: str,
+        subject: str,
+        body: str,
+        cc: Optional[str] = None,
+        bcc: Optional[str] = None,
+    ) -> dict:
+        """Synchronous version of send_message."""
+        import base64
+        from email.mime.text import MIMEText
+        
+        service = self._get_service()
+        
+        # Create message
+        message = MIMEText(body)
+        message['to'] = to
+        message['subject'] = subject
+        if cc:
+            message['cc'] = cc
+        if bcc:
+            message['bcc'] = bcc
+        
+        # Encode and send
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+        result = service.users().messages().send(
+            userId='me',
+            body={'raw': raw}
+        ).execute()
+        
+        return result
+    
+    async def send_email(
+        self,
+        to: str,
+        subject: str,
+        body: str,
+        cc: Optional[str] = None,
+        bcc: Optional[str] = None,
+    ) -> dict:
+        """Send an email via Gmail API.
+        
+        Args:
+            to: Recipient email address
+            subject: Email subject
+            body: Email body (plain text)
+            cc: Optional CC addresses (comma-separated)
+            bcc: Optional BCC addresses (comma-separated)
+        
+        Returns:
+            dict with message ID and status
+        """
+        return await asyncio.to_thread(
+            self._send_message_sync,
+            to,
+            subject,
+            body,
+            cc,
+            bcc,
+        )
