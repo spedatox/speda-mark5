@@ -81,15 +81,16 @@ sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
 
 # Clean up old containers and images
 echo "🧹 Cleaning up old containers..."
-docker-compose down --remove-orphans 2>/dev/null || true
-docker system prune -f 2>/dev/null || true
+docker-compose down -v --remove-orphans 2>/dev/null || true
+docker container prune -f 2>/dev/null || true
+docker image prune -f 2>/dev/null || true
 
 # Build and run
 echo "🔨 Building Docker image..."
 docker-compose build --no-cache
 
 echo "🚀 Starting SPEDA..."
-docker-compose up -d --force-recreate
+docker-compose up -d
 
 # Wait for startup
 echo "⏳ Waiting for startup..."

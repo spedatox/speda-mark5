@@ -66,11 +66,12 @@ fi
 
 # Stop existing container if running
 echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
-docker-compose down --remove-orphans 2>/dev/null || true
+docker-compose down -v --remove-orphans 2>/dev/null || true
 
 # Clean up dangling images and containers
 echo -e "${YELLOW}🧹 Cleaning up old resources...${NC}"
-docker system prune -f 2>/dev/null || true
+docker container prune -f 2>/dev/null || true
+docker image prune -f 2>/dev/null || true
 
 # Pull or build
 echo -e "${YELLOW}🔨 Building Docker image...${NC}"
@@ -78,7 +79,7 @@ docker-compose build --no-cache
 
 # Start container
 echo -e "${YELLOW}🚀 Starting Speda Backend...${NC}"
-docker-compose up -d --force-recreate
+docker-compose up -d
 
 # Wait for health check
 echo -e "${YELLOW}⏳ Waiting for service to be healthy...${NC}"

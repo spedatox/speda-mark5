@@ -24,19 +24,20 @@ jobs:
             git pull origin main
             cd backend
             
-            # Stop and remove old containers
-            docker-compose down --remove-orphans
+            # Stop and remove everything (including volumes)
+            docker-compose down -v --remove-orphans
             
-            # Clean up old images and containers
-            docker system prune -f
+            # Remove any dangling containers/images
+            docker container prune -f
+            docker image prune -f
             
             # Build fresh image
             docker-compose build --no-cache
             
-            # Start with force recreate
-            docker-compose up -d --force-recreate
+            # Start fresh
+            docker-compose up -d
             
             # Show status
             docker-compose ps
-            docker-compose logs --tail=10
+            docker-compose logs --tail=20
             echo "✅ Deployment completed!"

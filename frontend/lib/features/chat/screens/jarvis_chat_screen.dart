@@ -607,48 +607,59 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildWelcomeScreen() {
     final textTheme = Theme.of(context).textTheme;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 32),
-
-          Text(
-            'SPEDA ASSISTANT',
-            style: textTheme.headlineSmall?.copyWith(
-              color: JarvisColors.primary,
-              fontSize: 25,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'PERSONAL EXECUTIVE SYSTEM',
-            style: textTheme.labelMedium?.copyWith(
-              color: JarvisColors.textMuted,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 3.2,
-            ),
-          ),
-
-          const SizedBox(height: 48),
-
-          // Quick actions
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            alignment: WrapAlignment.center,
+    return SingleChildScrollView(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildQuickAction(Icons.list_alt, 'TASKS', 'Show my tasks'),
-              _buildQuickAction(Icons.calendar_today, 'SCHEDULE',
-                  'What\'s on my calendar today?'),
-              _buildQuickAction(
-                  Icons.wb_sunny, 'BRIEFING', 'Give me my daily briefing'),
+              // SPEDA Logo
+              Image.asset(
+                'assets/images/speda_ui_logo.png',
+                width: 120,
+                height: 120,
+              ),
+              const SizedBox(height: 24),
+
+              Text(
+                'SPEDA',
+                style: textTheme.headlineSmall?.copyWith(
+                  color: JarvisColors.primary,
+                  fontSize: 45,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'PERSONAL EXECUTIVE SYSTEM',
+                style: textTheme.labelMedium?.copyWith(
+                  color: JarvisColors.textMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 3.2,
+                ),
+              ),
+
+              const SizedBox(height: 48),
+
+              // Quick actions
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: [
+                  _buildQuickAction(Icons.list_alt, 'TASKS', 'Show my tasks'),
+                  _buildQuickAction(Icons.calendar_today, 'SCHEDULE',
+                      'What\'s on my calendar today?'),
+                  _buildQuickAction(
+                      Icons.wb_sunny, 'BRIEFING', 'Give me my daily briefing'),
+                ],
+              ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
