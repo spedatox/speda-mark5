@@ -24,6 +24,7 @@ from app.routers import (
 )
 from app.routers.knowledge import router as knowledge_router
 from app.routers.voice import router as voice_router
+from app.routers.files import router as files_router
 
 
 @asynccontextmanager
@@ -80,6 +81,7 @@ def create_app() -> FastAPI:
     app.include_router(notifications_router)
     app.include_router(knowledge_router)
     app.include_router(voice_router)
+    app.include_router(files_router)
 
     @app.get("/")
     async def root():

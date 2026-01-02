@@ -1060,3 +1060,89 @@ class GoogleTask {
     );
   }
 }
+
+// ==================== File Upload Extensions ====================
+
+extension FileUploadExtension on ApiService {
+  /// Upload a file with optional analysis
+  Future<Map<String, dynamic>> uploadFile(
+    String filePath, {
+    bool analyze = false,
+    String? prompt,
+  }) async {
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/api/files/upload'),
+    );
+
+    request.headers['X-API-Key'] = apiKey;
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+    request.fields['analyze'] = analyze.toString();
+    if (prompt != null) request.fields['prompt'] = prompt;
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw ApiException(
+        statusCode: response.statusCode,
+        message: 'Failed to upload file',
+      );
+    }
+  }
+
+  /// Analyze image with GPT-4 Vision
+  Future<String> analyzeImage(
+    String imagePath, {
+    String prompt = 'What\'s in this image? Describe everything you see.',
+  }) async {
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/api/files/analyze-image'),
+    );
+
+    request.headers['X-API-Key'] = apiKey;
+    request.files.add(await http.MultipartFile.fromPath('file', imagePath));
+    request.fields['prompt'] = prompt;
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['description'] ?? '';
+    } else {
+      throw ApiException(
+        statusCode: response.statusCode,
+        message: 'Failed to analyze image',
+      );
+    }
+  }
+
+  /// Analyze image from URL
+  Future<String> analyzeImageUrl(
+    String imageUrl, {
+    String prompt = 'What\'s in this image? Describe everything you see.',
+  }) async {
+    final response = await _client.post(
+      Uri.parse('$baseUrl/api/files/analyze-url'),
+      headers: _headers,
+      body: jsonEncode({
+        'image_url': imageUrl,
+        'prompt': prompt,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['description'] ?? '';
+    } else {
+      throw ApiException(
+        statusCode: response.statusCode,
+        message: 'Failed to analyze image',
+      );
+    }
+  }
+}
