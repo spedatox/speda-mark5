@@ -1,10 +1,25 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../../core/services/api_service.dart';
 import '../../../core/models/api_response.dart';
+
+/// Attachment model for images
+class ChatAttachment {
+  final String path;
+  final String? base64Data;
+  final String mimeType;
+  
+  ChatAttachment({
+    required this.path,
+    this.base64Data,
+    this.mimeType = 'image/jpeg',
+  });
+}
 
 /// Message model for the chat UI
 class ChatMessage {
@@ -16,7 +31,8 @@ class ChatMessage {
   final bool isFunctionCall;
   final String? functionName;
   final Map<String, dynamic>? functionResult;
-  final String? processingStatus; // For inline processing indicator
+  final String? processingStatus;
+  final List<ChatAttachment>? attachments; // NEW: Image attachments
 
   ChatMessage({
     required this.content,
@@ -28,6 +44,7 @@ class ChatMessage {
     this.functionName,
     this.functionResult,
     this.processingStatus,
+    this.attachments,
   }) : timestamp = timestamp ?? DateTime.now();
 
   ChatMessage copyWith({
@@ -40,6 +57,7 @@ class ChatMessage {
     String? functionName,
     Map<String, dynamic>? functionResult,
     String? processingStatus,
+    List<ChatAttachment>? attachments,
   }) {
     return ChatMessage(
       content: content ?? this.content,
@@ -51,6 +69,7 @@ class ChatMessage {
       functionName: functionName ?? this.functionName,
       functionResult: functionResult ?? this.functionResult,
       processingStatus: processingStatus ?? this.processingStatus,
+      attachments: attachments ?? this.attachments,
     );
   }
 }
@@ -67,6 +86,11 @@ class ChatProvider extends ChangeNotifier {
   bool _isStreaming = false;
   bool _isBackendConnected = false;
   StreamSubscription<NotificationEvent>? _notificationSub;
+  
+  // NEW: Pending image attachments
+  List<ChatAttachment> _pendingAttachments = [];
+  List<ChatAttachment> get pendingAttachments => List.unmodifiable(_pendingAttachments);
+  bool get hasAttachments => _pendingAttachments.isNotEmpty;
 
   ChatProvider(this._apiService) {
     _checkBackendConnection();
@@ -91,6 +115,48 @@ class ChatProvider extends ChangeNotifier {
   int? get conversationId => _conversationId;
   String? get conversationTitle => _conversationTitle;
   bool get isBackendConnected => _isBackendConnected;
+
+  /// Add an image attachment (Gemini-style)
+  Future<void> addImageAttachment(String filePath) async {
+    try {
+      final file = File(filePath);
+      final bytes = await file.readAsBytes();
+      final base64Data = base64Encode(bytes);
+      
+      // Determine mime type
+      String mimeType = 'image/jpeg';
+      if (filePath.toLowerCase().endsWith('.png')) {
+        mimeType = 'image/png';
+      } else if (filePath.toLowerCase().endsWith('.gif')) {
+        mimeType = 'image/gif';
+      } else if (filePath.toLowerCase().endsWith('.webp')) {
+        mimeType = 'image/webp';
+      }
+      
+      _pendingAttachments.add(ChatAttachment(
+        path: filePath,
+        base64Data: base64Data,
+        mimeType: mimeType,
+      ));
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to add attachment: $e');
+    }
+  }
+  
+  /// Remove a pending attachment
+  void removeAttachment(int index) {
+    if (index >= 0 && index < _pendingAttachments.length) {
+      _pendingAttachments.removeAt(index);
+      notifyListeners();
+    }
+  }
+  
+  /// Clear all pending attachments
+  void clearAttachments() {
+    _pendingAttachments.clear();
+    notifyListeners();
+  }
 
   /// Refresh backend connection status
   Future<void> refreshConnectionStatus() => _checkBackendConnection();
@@ -128,14 +194,29 @@ class ChatProvider extends ChangeNotifier {
 
   /// Send a message with streaming response
   Future<void> sendMessage(String message, {List<String>? images}) async {
-    if (message.trim().isEmpty && (images == null || images.isEmpty)) return;
+    if (message.trim().isEmpty && _pendingAttachments.isEmpty) return;
 
-    // Add user message
+    // Collect image data from pending attachments
+    final List<String> imageDataList = [];
+    final List<ChatAttachment> attachmentsToSend = [..._pendingAttachments];
+    
+    for (final attachment in _pendingAttachments) {
+      if (attachment.base64Data != null) {
+        // Format: data:image/jpeg;base64,xxxxx
+        imageDataList.add('data:${attachment.mimeType};base64,${attachment.base64Data}');
+      }
+    }
+    
+    // Clear pending attachments
+    _pendingAttachments.clear();
+
+    // Add user message with attachments
     _messages = [
       ..._messages,
       ChatMessage(
         content: message,
         isUser: true,
+        attachments: attachmentsToSend.isNotEmpty ? attachmentsToSend : null,
       )
     ];
     _isLoading = true;
@@ -150,7 +231,7 @@ class ChatProvider extends ChangeNotifier {
         content: '',
         isUser: false,
         isStreaming: true,
-        processingStatus: 'Processing...',
+        processingStatus: imageDataList.isNotEmpty ? '🖼️ Analyzing image...' : 'Processing...',
       )
     ];
     _safeNotifyListeners();
@@ -162,7 +243,7 @@ class ChatProvider extends ChangeNotifier {
       await for (final event in _apiService.streamMessage(
         message: message,
         conversationId: _conversationId,
-        images: images,
+        images: imageDataList.isNotEmpty ? imageDataList : images,
       )) {
         switch (event.type) {
           case 'start':

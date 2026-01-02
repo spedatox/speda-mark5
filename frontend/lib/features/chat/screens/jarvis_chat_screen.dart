@@ -1,4 +1,4 @@
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, File;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -674,51 +674,109 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           child: SafeArea(
             top: false,
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // File upload button
-                _buildAttachButton(provider.isLoading),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: JarvisColors.background,
-                      border: Border.all(color: JarvisColors.panelBorder),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: TextField(
-                      controller: _textController,
-                      focusNode: _focusNode,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        color: JarvisColors.textPrimary,
-                        fontSize: 14,
-                      ),
-                      decoration: const InputDecoration(
-                        hintText: 'Message Speda...',
-                        hintStyle: TextStyle(
-                          fontFamily: 'Inter',
-                          color: JarvisColors.textMuted,
-                          letterSpacing: 0.5,
+                // Image preview area (Gemini-style)
+                if (provider.hasAttachments) _buildAttachmentPreview(provider),
+                Row(
+                  children: [
+                    // File upload button
+                    _buildAttachButton(provider.isLoading),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: JarvisColors.background,
+                          border: Border.all(color: JarvisColors.panelBorder),
+                          borderRadius: BorderRadius.circular(24),
                         ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
+                        child: TextField(
+                          controller: _textController,
+                          focusNode: _focusNode,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            color: JarvisColors.textPrimary,
+                            fontSize: 14,
+                          ),
+                          decoration: const InputDecoration(
+                            hintText: 'Message Speda...',
+                            hintStyle: TextStyle(
+                              fontFamily: 'Inter',
+                              color: JarvisColors.textMuted,
+                              letterSpacing: 0.5,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                          ),
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _sendMessage(),
                         ),
                       ),
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _sendMessage(),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    _buildSendButton(provider.isLoading),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                _buildSendButton(provider.isLoading),
               ],
             ),
           ),
         );
       },
+    );
+  }
+  
+  /// Gemini-style image preview with X button
+  Widget _buildAttachmentPreview(ChatProvider provider) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      height: 80,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: provider.pendingAttachments.length,
+        itemBuilder: (context, index) {
+          final attachment = provider.pendingAttachments[index];
+          return Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    File(attachment.path),
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: GestureDetector(
+                    onTap: () => provider.removeAttachment(index),
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -731,7 +789,7 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final result = await FilePicker.platform.pickFiles(
         allowMultiple: false,
-        type: FileType.any,
+        type: FileType.image, // Only images for vision
         withData: false,
       );
 
@@ -747,11 +805,12 @@ class _ChatScreenState extends State<ChatScreen> {
         return;
       }
 
-      await context.read<ChatProvider>().uploadFile(path);
+      // Add to pending attachments (Gemini-style)
+      await context.read<ChatProvider>().addImageAttachment(path);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $e')),
+          SnackBar(content: Text('Failed to add image: $e')),
         );
       }
     } finally {
