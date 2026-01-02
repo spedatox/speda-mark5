@@ -8,7 +8,6 @@ from app.services.google_calendar import GoogleCalendarService
 from app.services.google_tasks import GoogleTasksService
 from app.services.google_gmail import GoogleGmailService
 from app.services.weather import WeatherService
-from app.services.news import NewsService
 from app.services.search import TavilySearchService
 from app.services.diagnostics import DiagnosticsService
 
@@ -298,95 +297,33 @@ SPEDA_FUNCTIONS = [
             }
         }
     },
-    
-    # ==================== News Functions ====================
-    {
-        "type": "function",
-        "function": {
-            "name": "get_news_headlines",
-            "description": "Get top news headlines. Use this when the user asks about news or current events.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "category": {
-                        "type": "string",
-                        "enum": ["general", "business", "technology", "science", "health", "sports", "entertainment"],
-                        "description": "News category",
-                        "default": "general"
-                    },
-                    "country": {
-                        "type": "string",
-                        "description": "Country code (e.g., 'tr' for Turkey, 'us' for USA)",
-                        "default": "us"
-                    },
-                    "query": {
-                        "type": "string",
-                        "description": "Optional search query to filter news"
-                    },
-                    "count": {
-                        "type": "integer",
-                        "description": "Number of articles to return",
-                        "default": 5
-                    }
-                },
-                "required": []
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "search_news",
-            "description": "Search for news articles on a specific topic. Use this when the user wants news about something specific.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Search query for news articles"
-                    },
-                    "language": {
-                        "type": "string",
-                        "description": "Language code (e.g., 'en', 'tr')",
-                        "default": "en"
-                    },
-                    "count": {
-                        "type": "integer",
-                        "description": "Number of articles to return",
-                        "default": 5
-                    }
-                },
-                "required": ["query"]
-            }
-        }
-    },
 
     # ==================== Web Search (Tavily) ====================
     {
         "type": "function",
         "function": {
             "name": "web_search",
-            "description": "Perform a live web search using Tavily. Use this when the user asks for up-to-date or factual information from the internet.",
+            "description": "Perform a live web search. Use this for ANY request requiring current information: news, events, facts, prices, weather updates, sports scores, recent developments, or anything that needs up-to-date data from the internet. This is your primary tool for real-time information.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "Search query to run on the web"
+                        "description": "Search query - be specific and include relevant keywords, dates, or context"
                     },
                     "max_results": {
                         "type": "integer",
-                        "description": "Maximum number of results to return",
+                        "description": "Maximum number of results to return (default 5, use more for comprehensive searches)",
                         "default": 5
                     },
                     "include_images": {
                         "type": "boolean",
                         "description": "Include image URLs where available",
-                        "default": False
+                        "default": false
                     },
                     "search_depth": {
                         "type": "string",
-                        "description": "Search depth. Use 'advanced' for broader reasoning.",
+                        "description": "Search depth - use 'advanced' for comprehensive results",
                         "enum": ["basic", "advanced"],
                         "default": "advanced"
                     }
@@ -558,7 +495,6 @@ class FunctionExecutor:
         self.tasks_service = GoogleTasksService()
         self.gmail_service = GoogleGmailService()
         self.weather_service = WeatherService()
-        self.news_service = NewsService()
         self.search_service = TavilySearchService()
     
     async def execute(self, function_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -594,10 +530,6 @@ class FunctionExecutor:
                 return await self._get_current_weather(**arguments)
             elif function_name == "get_weather_forecast":
                 return await self._get_weather_forecast(**arguments)
-            elif function_name == "get_news_headlines":
-                return await self._get_news_headlines(**arguments)
-            elif function_name == "search_news":
-                return await self._search_news(**arguments)
             elif function_name == "web_search":
                 return await self._web_search(**arguments)
             elif function_name == "get_daily_briefing":
@@ -942,74 +874,6 @@ class FunctionExecutor:
                     "forecast": forecast,
                 }
             return {"success": False, "error": "Forecast data not available"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-    
-    # ==================== News Implementations ====================
-    
-    async def _get_news_headlines(
-        self,
-        category: str = "general",
-        country: str = "us",
-        query: Optional[str] = None,
-        count: int = 5,
-    ) -> dict:
-        """Get news headlines."""
-        try:
-            headlines = await self.news_service.get_top_headlines(
-                country=country,
-                category=category,
-                query=query,
-                page_size=count,
-            )
-            if headlines:
-                formatted = []
-                for article in headlines[:count]:
-                    formatted.append({
-                        "title": article.get("title"),
-                        "source": article.get("source", {}).get("name"),
-                        "description": article.get("description"),
-                        "url": article.get("url"),
-                        "published_at": article.get("publishedAt"),
-                    })
-                return {
-                    "success": True,
-                    "articles": formatted,
-                    "count": len(formatted),
-                }
-            return {"success": False, "error": "News not available"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-    
-    async def _search_news(
-        self,
-        query: str,
-        language: str = "en",
-        count: int = 5,
-    ) -> dict:
-        """Search news articles."""
-        try:
-            articles = await self.news_service.search_news(
-                query=query,
-                language=language,
-                page_size=count,
-            )
-            if articles:
-                formatted = []
-                for article in articles[:count]:
-                    formatted.append({
-                        "title": article.get("title"),
-                        "source": article.get("source", {}).get("name"),
-                        "description": article.get("description"),
-                        "url": article.get("url"),
-                        "published_at": article.get("publishedAt"),
-                    })
-                return {
-                    "success": True,
-                    "articles": formatted,
-                    "count": len(formatted),
-                }
-            return {"success": False, "error": "No articles found"}
         except Exception as e:
             return {"success": False, "error": str(e)}
 
