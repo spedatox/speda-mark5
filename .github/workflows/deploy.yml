@@ -23,8 +23,20 @@ jobs:
             cd ~/speda
             git pull origin main
             cd backend
-            docker-compose down
+            
+            # Stop and remove old containers
+            docker-compose down --remove-orphans
+            
+            # Clean up old images and containers
+            docker system prune -f
+            
+            # Build fresh image
             docker-compose build --no-cache
-            docker-compose up -d
+            
+            # Start with force recreate
+            docker-compose up -d --force-recreate
+            
+            # Show status
+            docker-compose ps
             docker-compose logs --tail=10
             echo "✅ Deployment completed!"
