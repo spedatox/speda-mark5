@@ -64,17 +64,21 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
+# Stop existing container if running
+echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
+docker-compose down --remove-orphans 2>/dev/null || true
+
+# Clean up dangling images and containers
+echo -e "${YELLOW}🧹 Cleaning up old resources...${NC}"
+docker system prune -f 2>/dev/null || true
+
 # Pull or build
 echo -e "${YELLOW}🔨 Building Docker image...${NC}"
-docker-compose build
-
-# Stop existing container if running
-echo -e "${YELLOW}🛑 Stopping existing container (if any)...${NC}"
-docker-compose down 2>/dev/null || true
+docker-compose build --no-cache
 
 # Start container
 echo -e "${YELLOW}🚀 Starting Speda Backend...${NC}"
-docker-compose up -d
+docker-compose up -d --force-recreate
 
 # Wait for health check
 echo -e "${YELLOW}⏳ Waiting for service to be healthy...${NC}"
