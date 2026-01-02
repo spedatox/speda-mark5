@@ -81,7 +81,7 @@ sudo iptables -I INPUT -p tcp --dport 443 -j ACCEPT 2>/dev/null || true
 
 # Clean up old containers and images
 echo "🧹 Cleaning up old containers..."
-docker-compose down -v --remove-orphans 2>/dev/null || true
+docker-compose down --remove-orphans 2>/dev/null || true
 docker container prune -f 2>/dev/null || true
 docker image prune -f 2>/dev/null || true
 

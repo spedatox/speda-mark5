@@ -66,7 +66,7 @@ fi
 
 # Stop existing container if running
 echo -e "${YELLOW}🛑 Stopping existing containers...${NC}"
-docker-compose down -v --remove-orphans 2>/dev/null || true
+docker-compose down --remove-orphans 2>/dev/null || true
 
 # Clean up dangling images and containers
 echo -e "${YELLOW}🧹 Cleaning up old resources...${NC}"

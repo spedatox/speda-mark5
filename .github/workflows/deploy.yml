@@ -24,8 +24,8 @@ jobs:
             git pull origin main
             cd backend
             
-            # Stop and remove everything (including volumes)
-            docker-compose down -v --remove-orphans
+            # Stop and remove old containers (KEEP VOLUMES!)
+            docker-compose down --remove-orphans
             
             # Remove any dangling containers/images
             docker container prune -f
