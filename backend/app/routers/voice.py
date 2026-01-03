@@ -25,7 +25,8 @@ TTS_CACHE_DIR.mkdir(exist_ok=True)
 class TTSRequest(BaseModel):
     """TTS request model."""
     text: str
-    voice: str = "nova"  # alloy, echo, fable, onyx, nova, shimmer
+    voice: str = "marin"  # marin, cedar, coral, alloy, ash, ballad, echo, fable, nova, onyx, sage, shimmer, verse
+    instructions: str = "Speak in an energetic, happy, and upbeat tone. Be enthusiastic and friendly."
 
 
 class TTSResponse(BaseModel):
@@ -34,9 +35,9 @@ class TTSResponse(BaseModel):
     cached: bool = False
 
 
-def get_cache_key(text: str, voice: str) -> str:
+def get_cache_key(text: str, voice: str, instructions: str = "") -> str:
     """Generate a cache key for TTS audio."""
-    content = f"{text}:{voice}"
+    content = f"{text}:{voice}:{instructions}"
     return hashlib.md5(content.encode()).hexdigest()
 
 
@@ -56,7 +57,7 @@ async def generate_tts(request: TTSRequest):
     text = request.text[:4096]
     
     # Check cache first
-    cache_key = get_cache_key(text, request.voice)
+    cache_key = get_cache_key(text, request.voice, request.instructions)
     cache_path = TTS_CACHE_DIR / f"{cache_key}.mp3"
     
     if cache_path.exists():
@@ -70,9 +71,10 @@ async def generate_tts(request: TTSRequest):
         client = AsyncOpenAI(api_key=settings.openai_api_key)
         
         response = await client.audio.speech.create(
-            model="tts-1",  # or "tts-1-hd" for higher quality
+            model="gpt-4o-mini-tts",
             voice=request.voice,
             input=text,
+            instructions=request.instructions,
             response_format="mp3",
         )
         
@@ -122,16 +124,24 @@ async def clear_cache():
 
 @router.get("/voices")
 async def list_voices():
-    """List available TTS voices."""
+    """List available TTS voices for gpt-4o-mini-tts model."""
     return {
         "voices": [
+            {"id": "marin", "name": "Marin", "description": "High quality, natural"},
+            {"id": "cedar", "name": "Cedar", "description": "High quality, warm"},
+            {"id": "coral", "name": "Coral", "description": "Clear, friendly"},
             {"id": "alloy", "name": "Alloy", "description": "Neutral, balanced"},
+            {"id": "ash", "name": "Ash", "description": "Calm, conversational"},
+            {"id": "ballad", "name": "Ballad", "description": "Expressive, melodic"},
             {"id": "echo", "name": "Echo", "description": "Warm, conversational"},
             {"id": "fable", "name": "Fable", "description": "British, expressive"},
-            {"id": "onyx", "name": "Onyx", "description": "Deep, authoritative"},
             {"id": "nova", "name": "Nova", "description": "Friendly, upbeat"},
+            {"id": "onyx", "name": "Onyx", "description": "Deep, authoritative"},
+            {"id": "sage", "name": "Sage", "description": "Calm, thoughtful"},
             {"id": "shimmer", "name": "Shimmer", "description": "Clear, professional"},
+            {"id": "verse", "name": "Verse", "description": "Dynamic, engaging"},
         ],
-        "default": "nova",
-        "recommended_for_jarvis": "onyx",  # Deep voice for JARVIS feel
+        "default": "marin",
+        "model": "gpt-4o-mini-tts",
+        "recommended_for_speda": "marin",
     }

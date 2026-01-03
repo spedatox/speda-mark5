@@ -354,14 +354,19 @@ class ApiService {
   }
 
   /// Get TTS audio URL from backend
-  /// Backend generates audio using OpenAI TTS and returns a URL
-  Future<String> getTTSAudio(String text, {String voice = 'onyx'}) async {
+  /// Backend generates audio using OpenAI gpt-4o-mini-tts and returns a URL
+  Future<String> getTTSAudio(
+    String text, {
+    String voice = 'marin',
+    String instructions = 'Speak in an energetic, happy, and upbeat tone. Be enthusiastic and friendly.',
+  }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/voice/tts'),
       headers: _headers,
       body: jsonEncode({
         'text': text,
         'voice': voice,
+        'instructions': instructions,
       }),
     );
 
