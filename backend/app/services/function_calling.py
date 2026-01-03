@@ -319,7 +319,7 @@ SPEDA_FUNCTIONS = [
                     "include_images": {
                         "type": "boolean",
                         "description": "Include image URLs where available",
-                        "default": false
+                        "default": False
                     },
                     "search_depth": {
                         "type": "string",
