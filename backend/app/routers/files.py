@@ -10,7 +10,7 @@ import mimetypes
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Header
 from pydantic import BaseModel
 
-from app.auth import verify_api_token
+from app.auth import verify_api_key
 from app.config import get_settings
 from app.services.llm import LLMService
 
@@ -54,7 +54,7 @@ async def upload_file(
     - Documents: PDF, TXT, MD
     - Audio: MP3, WAV, M4A (future: transcription)
     """
-    verify_api_token(x_api_key)
+    verify_api_key(x_api_key)
     
     # Generate unique file ID
     file_id = str(uuid.uuid4())
@@ -134,7 +134,7 @@ async def analyze_image(
     x_api_key: str = Header(None),
 ):
     """Analyze an image with GPT-4 Vision."""
-    verify_api_token(x_api_key)
+    verify_api_key(x_api_key)
     
     # Read and encode image
     content = await file.read()
@@ -185,7 +185,7 @@ async def analyze_image_url(
     x_api_key: str = Header(None),
 ):
     """Analyze an image from URL."""
-    verify_api_token(x_api_key)
+    verify_api_key(x_api_key)
     
     if not request.image_url:
         raise HTTPException(status_code=400, detail="image_url is required")
@@ -226,7 +226,7 @@ async def get_file(
     x_api_key: str = Header(None),
 ):
     """Get uploaded file."""
-    verify_api_token(x_api_key)
+    verify_api_key(x_api_key)
     
     # Find file
     files = list(UPLOAD_DIR.glob(f"{file_id}.*"))
@@ -250,7 +250,7 @@ async def delete_file(
     x_api_key: str = Header(None),
 ):
     """Delete uploaded file."""
-    verify_api_token(x_api_key)
+    verify_api_key(x_api_key)
     
     # Find and delete file
     files = list(UPLOAD_DIR.glob(f"{file_id}.*"))
