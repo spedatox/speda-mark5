@@ -262,33 +262,37 @@ class BriefingService:
         return f"{time_greeting}! Here's your briefing for today."
 
     async def _get_weather(self) -> Optional[WeatherInfo]:
-        """Get weather information.
+        """Get weather information from OpenWeatherMap API."""
+        from app.services.weather import WeatherService
         
-        This is a mock implementation. Replace with real weather API.
-        """
-        from app.config import get_settings
-        settings = get_settings()
-
-        if not settings.weather_api_key:
-            # Return mock weather
-            return WeatherInfo(
-                temperature=18.0,
-                condition="Partly Cloudy",
-                high=22.0,
-                low=14.0,
-                location="Istanbul",
-            )
-
-        # Real implementation would go here
-        # import httpx
-        # async with httpx.AsyncClient() as client:
-        #     response = await client.get(
-        #         f"https://api.weatherapi.com/v1/current.json",
-        #         params={"key": settings.weather_api_key, "q": "Istanbul"}
-        #     )
-        #     data = response.json()
-        #     ...
-
+        try:
+            weather_service = WeatherService()
+            weather_data = await weather_service.get_current_weather()
+            
+            if weather_data:
+                # Get forecast for high/low temps
+                forecast = await weather_service.get_forecast(days=1)
+                high_temp = weather_data.get("temperature", 20.0)
+                low_temp = weather_data.get("temperature", 15.0)
+                
+                if forecast and len(forecast) > 0:
+                    # Calculate high/low from today's forecast
+                    temps = [f.get("temperature", 0) for f in forecast[:8] if f.get("temperature")]
+                    if temps:
+                        high_temp = max(temps)
+                        low_temp = min(temps)
+                
+                return WeatherInfo(
+                    temperature=weather_data.get("temperature", 0.0),
+                    condition=weather_data.get("description", "Unknown").title(),
+                    high=high_temp,
+                    low=low_temp,
+                    location=weather_data.get("city", "Unknown"),
+                )
+        except Exception as e:
+            print(f"[BRIEFING] Weather fetch failed: {e}")
+        
+        # Return None if weather is not available
         return None
 
     async def _get_news(self) -> Optional[list[str]]:
