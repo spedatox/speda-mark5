@@ -189,6 +189,13 @@ async def chat_stream(
     tomorrow = today + timedelta(days=1)
     
     system_prompt = conversation_engine._build_system_prompt(request.timezone)
+    
+    # Add location context if available
+    if request.location:
+        system_prompt += f"\n\n## User Location\n- Coordinates: {request.location.latitude}, {request.location.longitude}"
+        if request.location.address:
+            system_prompt += f"\n- Approximate Address: {request.location.address}"
+            
     system_prompt += f"""
 
 ## Current Date Information

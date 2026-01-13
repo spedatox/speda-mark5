@@ -164,12 +164,20 @@ class EmailResponse(BaseSchema):
 
 
 # Chat schemas
+class LocationInfo(BaseModel):
+    """Schema for location information."""
+    latitude: float
+    longitude: float
+    address: Optional[str] = None
+
+
 class ChatRequest(BaseModel):
     """Schema for chat request from frontend."""
 
     message: str = Field(..., min_length=1, max_length=10000)
     timezone: str = Field(default="Europe/Istanbul")
     images: list[str] = Field(default_factory=list, description="List of base64 encoded images")
+    location: Optional[LocationInfo] = None
 
 
 class Action(BaseModel):

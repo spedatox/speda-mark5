@@ -668,6 +668,7 @@ class ApiService {
     String timezone = 'Europe/Istanbul',
     int? conversationId,
     List<String>? images,
+    Map<String, dynamic>? location,
   }) async* {
     final queryParams =
         conversationId != null ? '?conversation_id=$conversationId' : '';
@@ -681,6 +682,7 @@ class ApiService {
       'message': message,
       'timezone': timezone,
       if (images != null && images.isNotEmpty) 'images': images,
+      if (location != null) 'location': location,
     });
 
     final streamedResponse = await _client.send(request);

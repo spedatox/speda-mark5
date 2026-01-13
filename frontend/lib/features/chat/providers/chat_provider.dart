@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../../../core/services/api_service.dart';
 import '../../../core/models/api_response.dart';
+import '../../../core/services/location_service.dart';
 
 /// Attachment model for images
 class ChatAttachment {
@@ -77,6 +78,7 @@ class ChatMessage {
 /// Chat provider for managing conversation state.
 class ChatProvider extends ChangeNotifier {
   final ApiService _apiService;
+  final LocationService _locationService = LocationService();
 
   List<ChatMessage> _messages = [];
   int? _conversationId;
@@ -268,6 +270,25 @@ class ChatProvider extends ChangeNotifier {
         }
       }
 
+      // Get location context
+      Map<String, dynamic>? locationData;
+      try {
+        final position = await _locationService.getCurrentLocation();
+        if (position != null) {
+          final address = await _locationService.getAddressFromCoordinates(
+            position.latitude,
+            position.longitude,
+          );
+          locationData = {
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+            'address': address
+          };
+        }
+      } catch (e) {
+        debugPrint('Failed to get location: $e');
+      }
+
       String fullResponse = '';
       String? currentFunctionName;
 
@@ -275,6 +296,7 @@ class ChatProvider extends ChangeNotifier {
         message: finalMessage,
         conversationId: _conversationId,
         images: imageDataList.isNotEmpty ? imageDataList : images,
+        location: locationData,
       )) {
         switch (event.type) {
           case 'start':
