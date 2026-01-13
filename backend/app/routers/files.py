@@ -8,6 +8,7 @@ import base64
 import mimetypes
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Header
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.auth import verify_api_key
@@ -242,6 +243,22 @@ async def get_file(
         "size": file_path.stat().st_size,
         "path": str(file_path),
     }
+
+
+@router.get("/{file_id}/content")
+async def serve_file(
+    file_id: str,
+    # No auth required for serving images in chat to avoid complexity with headers in Image.network
+):
+    """Serve uploaded file content."""
+    # Find file
+    files = list(UPLOAD_DIR.glob(f"{file_id}.*"))
+    
+    if not files:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    file_path = files[0]
+    return FileResponse(file_path)
 
 
 @router.delete("/{file_id}")

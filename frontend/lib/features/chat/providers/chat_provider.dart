@@ -13,7 +13,7 @@ class ChatAttachment {
   final String path;
   final String? base64Data;
   final String mimeType;
-  
+
   ChatAttachment({
     required this.path,
     this.base64Data,
@@ -86,25 +86,41 @@ class ChatProvider extends ChangeNotifier {
   bool _isStreaming = false;
   bool _isBackendConnected = false;
   StreamSubscription<NotificationEvent>? _notificationSub;
-  
+
   // NEW: Pending image attachments
   List<ChatAttachment> _pendingAttachments = [];
-  List<ChatAttachment> get pendingAttachments => List.unmodifiable(_pendingAttachments);
+  List<ChatAttachment> get pendingAttachments =>
+      List.unmodifiable(_pendingAttachments);
   bool get hasAttachments => _pendingAttachments.isNotEmpty;
 
+  Timer? _healthCheckTimer;
+
   ChatProvider(this._apiService) {
+    _init();
+  }
+
+  void _init() {
     _checkBackendConnection();
     _startNotificationStream();
+    // Check health every 30 seconds
+    _healthCheckTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _checkBackendConnection();
+    });
   }
 
   Future<void> _checkBackendConnection() async {
     try {
       await _apiService.checkHealth();
-      _isBackendConnected = true;
+      if (!_isBackendConnected) {
+        _isBackendConnected = true;
+        notifyListeners();
+      }
     } catch (e) {
-      _isBackendConnected = false;
+      if (_isBackendConnected) {
+        _isBackendConnected = false;
+        notifyListeners();
+      }
     }
-    notifyListeners();
   }
 
   // Getters
@@ -122,7 +138,7 @@ class ChatProvider extends ChangeNotifier {
       final file = File(filePath);
       final bytes = await file.readAsBytes();
       final base64Data = base64Encode(bytes);
-      
+
       // Determine mime type
       String mimeType = 'image/jpeg';
       if (filePath.toLowerCase().endsWith('.png')) {
@@ -132,7 +148,7 @@ class ChatProvider extends ChangeNotifier {
       } else if (filePath.toLowerCase().endsWith('.webp')) {
         mimeType = 'image/webp';
       }
-      
+
       _pendingAttachments.add(ChatAttachment(
         path: filePath,
         base64Data: base64Data,
@@ -143,7 +159,7 @@ class ChatProvider extends ChangeNotifier {
       debugPrint('Failed to add attachment: $e');
     }
   }
-  
+
   /// Remove a pending attachment
   void removeAttachment(int index) {
     if (index >= 0 && index < _pendingAttachments.length) {
@@ -151,7 +167,7 @@ class ChatProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   /// Clear all pending attachments
   void clearAttachments() {
     _pendingAttachments.clear();
@@ -199,14 +215,15 @@ class ChatProvider extends ChangeNotifier {
     // Collect image data from pending attachments
     final List<String> imageDataList = [];
     final List<ChatAttachment> attachmentsToSend = [..._pendingAttachments];
-    
+
     for (final attachment in _pendingAttachments) {
       if (attachment.base64Data != null) {
         // Format: data:image/jpeg;base64,xxxxx
-        imageDataList.add('data:${attachment.mimeType};base64,${attachment.base64Data}');
+        imageDataList
+            .add('data:${attachment.mimeType};base64,${attachment.base64Data}');
       }
     }
-    
+
     // Clear pending attachments
     _pendingAttachments.clear();
 
@@ -231,17 +248,31 @@ class ChatProvider extends ChangeNotifier {
         content: '',
         isUser: false,
         isStreaming: true,
-        processingStatus: imageDataList.isNotEmpty ? '🖼️ Analyzing image...' : 'Processing...',
+        processingStatus: imageDataList.isNotEmpty
+            ? '🖼️ Analyzing image...'
+            : 'Processing...',
       )
     ];
     _safeNotifyListeners();
 
     try {
+      // Upload images for persistence history
+      String finalMessage = message;
+      for (final attachment in attachmentsToSend) {
+        try {
+          final fileId = await _apiService.uploadFile(attachment.path);
+          final url = _apiService.getFileUrl(fileId);
+          finalMessage += '\n\n![Image]($url)';
+        } catch (e) {
+          debugPrint('Failed to upload attachment: $e');
+        }
+      }
+
       String fullResponse = '';
       String? currentFunctionName;
 
       await for (final event in _apiService.streamMessage(
-        message: message,
+        message: finalMessage,
         conversationId: _conversationId,
         images: imageDataList.isNotEmpty ? imageDataList : images,
       )) {
@@ -677,6 +708,7 @@ class ChatProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _healthCheckTimer?.cancel();
     _notificationSub?.cancel();
     _apiService.dispose();
     super.dispose();

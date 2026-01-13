@@ -280,8 +280,12 @@ After executing any function, provide a natural, conversational response."""
                     # Notify frontend that we're executing a function
                     yield f"data: {json.dumps({'type': 'function_start', 'name': func_name})}\n\n"
                     
-                    # Execute the function
-                    result = await function_executor.execute(func_name, func_args)
+                    # Execute the function with timezone context
+                    result = await function_executor.execute(
+                        func_name, 
+                        func_args,
+                        context={"timezone": request.timezone}
+                    )
                     function_result = {
                         "name": func_name,
                         "result": result,

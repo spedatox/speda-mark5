@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../theme/jarvis_theme.dart';
-import '../../features/chat/screens/jarvis_chat_screen.dart';
-import '../../features/tasks/screens/jarvis_tasks_screen.dart';
-import '../../features/calendar/screens/jarvis_calendar_screen.dart';
-import '../../features/briefing/screens/jarvis_briefing_screen.dart';
-import '../../features/voice/screens/voice_chat_screen.dart';
+import '../theme/speda_theme.dart';
+import '../../features/chat/screens/minimal_chat_screen.dart';
+import '../../features/tasks/screens/minimal_tasks_screen.dart';
+import '../../features/calendar/screens/minimal_calendar_screen.dart';
+import '../../features/briefing/screens/minimal_briefing_screen.dart';
+import '../../features/settings/screens/minimal_settings_screen.dart';
 import '../../features/tasks/providers/task_provider.dart';
 import '../../features/calendar/providers/calendar_provider.dart';
+import '../../features/briefing/providers/briefing_provider.dart';
 
-/// Main scaffold with JARVIS-style bottom navigation.
+/// Main scaffold with minimal bottom navigation.
 class MainScaffold extends StatefulWidget {
   final int initialIndex;
 
@@ -27,40 +28,40 @@ class _MainScaffoldState extends State<MainScaffold> {
   late int _currentIndex;
 
   final List<Widget> _screens = const [
-    ChatScreen(),
-    VoiceChatScreen(),
-    TasksScreen(),
-    CalendarScreen(),
-    BriefingScreen(),
+    MinimalChatScreen(),
+    MinimalTasksScreen(),
+    MinimalCalendarScreen(),
+    MinimalBriefingScreen(),
+    MinimalSettingsScreen(),
   ];
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-    // Refresh data for initial tab
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshDataForTab(_currentIndex);
     });
   }
 
-  /// Refresh data when switching to a tab
   void _refreshDataForTab(int index) {
     switch (index) {
-      case 2: // Tasks
+      case 1: // Tasks
         context.read<TaskProvider>().loadTasks();
         break;
-      case 3: // Calendar - load a week of events
+      case 2: // Calendar
         final now = DateTime.now();
         context.read<CalendarProvider>().loadEvents(
               startDate: now.subtract(const Duration(days: 3)),
               endDate: now.add(const Duration(days: 4)),
             );
         break;
+      case 3: // Briefing
+        context.read<BriefingProvider>().loadBriefing();
+        break;
     }
   }
 
-  /// Handle tab change
   void _onTabChanged(int index) {
     if (_currentIndex != index) {
       setState(() => _currentIndex = index);
@@ -71,7 +72,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: JarvisColors.background,
+      backgroundColor: SpedaColors.background,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
@@ -83,9 +84,9 @@ class _MainScaffoldState extends State<MainScaffold> {
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        color: JarvisColors.surface.withOpacity(0.95),
-        border: const Border(
-          top: BorderSide(color: JarvisColors.panelBorder),
+        color: SpedaColors.surface,
+        border: Border(
+          top: BorderSide(color: SpedaColors.border, width: 0.5),
         ),
       ),
       child: SafeArea(
@@ -95,15 +96,16 @@ class _MainScaffoldState extends State<MainScaffold> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(
-                  0, Icons.chat_bubble_outline, Icons.chat_bubble, 'CHAT'),
-              _buildNavItem(1, Icons.mic_none, Icons.mic, 'VOICE'),
-              _buildNavItem(
-                  2, Icons.task_alt_outlined, Icons.task_alt, 'TASKS'),
-              _buildNavItem(3, Icons.calendar_today_outlined,
-                  Icons.calendar_today, 'CALENDAR'),
-              _buildNavItem(
-                  4, Icons.dashboard_outlined, Icons.dashboard, 'BRIEFING'),
+              _buildNavItem(0, Icons.chat_bubble_outline_rounded,
+                  Icons.chat_bubble_rounded, 'Chat'),
+              _buildNavItem(1, Icons.check_circle_outline_rounded,
+                  Icons.check_circle_rounded, 'Tasks'),
+              _buildNavItem(2, Icons.calendar_today_outlined,
+                  Icons.calendar_today_rounded, 'Calendar'),
+              _buildNavItem(3, Icons.wb_sunny_outlined, Icons.wb_sunny_rounded,
+                  'Briefing'),
+              _buildNavItem(4, Icons.settings_outlined, Icons.settings_rounded,
+                  'Settings'),
             ],
           ),
         ),
@@ -119,32 +121,25 @@ class _MainScaffoldState extends State<MainScaffold> {
       onTap: () => _onTabChanged(index),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: isSelected
-            ? BoxDecoration(
-                border:
-                    Border.all(color: JarvisColors.primary.withOpacity(0.5)),
-                borderRadius: BorderRadius.circular(4),
-                color: JarvisColors.primary.withOpacity(0.1),
-              )
-            : null,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               isSelected ? activeIcon : icon,
-              color: isSelected ? JarvisColors.primary : JarvisColors.textMuted,
-              size: 22,
+              color:
+                  isSelected ? SpedaColors.primary : SpedaColors.textTertiary,
+              size: 24,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
+                fontFamily: 'Inter',
                 color:
-                    isSelected ? JarvisColors.primary : JarvisColors.textMuted,
-                fontSize: 9,
-                letterSpacing: 1,
-                fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
+                    isSelected ? SpedaColors.primary : SpedaColors.textTertiary,
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
           ],

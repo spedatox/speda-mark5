@@ -497,10 +497,26 @@ class FunctionExecutor:
         self.weather_service = WeatherService()
         self.search_service = TavilySearchService()
     
-    async def execute(self, function_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        """Execute a function and return the result."""
+    async def execute(
+        self, 
+        function_name: str, 
+        arguments: dict[str, Any],
+        context: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        """Execute a function and return the result.
+        
+        Args:
+            function_name: Name of the function to execute
+            arguments: Arguments passed by the LLM
+            context: Execution context (e.g., timezone from the request)
+        """
+        context = context or {}
+        timezone = context.get("timezone", "Europe/Istanbul")
+        
         try:
             if function_name == "get_calendar_events":
+                # Inject timezone into calendar function
+                arguments["timezone"] = timezone
                 return await self._get_calendar_events(**arguments)
             elif function_name == "create_calendar_event":
                 return await self._create_calendar_event(**arguments)
@@ -555,22 +571,58 @@ class FunctionExecutor:
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         calendar_id: str = "primary",
+        timezone: str = "Europe/Istanbul",
     ) -> dict:
-        """Get calendar events."""
+        """Get calendar events with proper timezone handling."""
+        from zoneinfo import ZoneInfo
+        
         try:
-            today = datetime.now().date()
+            tz = ZoneInfo(timezone)
+            now = datetime.now(tz)
+            today = now.date()
             
             if start_date:
-                start = datetime.fromisoformat(start_date)
+                # Parse the date string - could be just date or datetime
+                try:
+                    if "T" in start_date:
+                        start = datetime.fromisoformat(start_date)
+                    else:
+                        # Just a date - make it start of day in user's timezone
+                        parsed_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+                        start = datetime.combine(parsed_date, datetime.min.time())
+                except ValueError:
+                    # Try parsing as date
+                    parsed_date = datetime.strptime(start_date.split("T")[0], "%Y-%m-%d").date()
+                    start = datetime.combine(parsed_date, datetime.min.time())
+                    
+                # Make timezone-aware if naive
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=tz)
             else:
-                start = datetime.combine(today, datetime.min.time())
+                start = datetime.combine(today, datetime.min.time(), tzinfo=tz)
             
             if end_date:
-                end = datetime.fromisoformat(end_date)
+                try:
+                    if "T" in end_date:
+                        end = datetime.fromisoformat(end_date)
+                    else:
+                        # Just a date - make it END of day in user's timezone
+                        parsed_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+                        end = datetime.combine(parsed_date, datetime.max.time())
+                except ValueError:
+                    parsed_date = datetime.strptime(end_date.split("T")[0], "%Y-%m-%d").date()
+                    end = datetime.combine(parsed_date, datetime.max.time())
+                    
+                # Make timezone-aware if naive
+                if end.tzinfo is None:
+                    end = end.replace(tzinfo=tz)
             else:
-                end = datetime.combine(start.date(), datetime.max.time())
+                # Default: end of same day as start
+                end = datetime.combine(start.date(), datetime.max.time(), tzinfo=tz)
             
-            events = await self.calendar_service.get_events(calendar_id, start, end)
+            events = await self.calendar_service.get_events(
+                calendar_id, start, end, timezone=timezone
+            )
             
             # Format events for readability
             formatted_events = []
@@ -588,7 +640,8 @@ class FunctionExecutor:
                 "success": True,
                 "events": formatted_events,
                 "count": len(formatted_events),
-                "date_range": f"{start.date()} to {end.date()}"
+                "date_range": f"{start.date()} to {end.date()}",
+                "timezone": timezone,
             }
         except Exception as e:
             return {"success": False, "error": str(e)}

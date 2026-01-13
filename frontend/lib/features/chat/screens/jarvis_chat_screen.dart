@@ -607,12 +607,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildWelcomeScreen() {
     final textTheme = Theme.of(context).textTheme;
-    return SingleChildScrollView(
-      child: Center(
+    return Center(
+      child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // SPEDA Logo
               Image.asset(

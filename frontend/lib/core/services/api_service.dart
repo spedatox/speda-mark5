@@ -26,10 +26,12 @@ class ApiService {
   /// Check if backend is reachable
   Future<bool> checkHealth() async {
     try {
-      final response = await _client.get(
-        Uri.parse('$baseUrl/health'),
-        headers: _headers,
-      ).timeout(const Duration(seconds: 5));
+      final response = await _client
+          .get(
+            Uri.parse('$baseUrl/health'),
+            headers: _headers,
+          )
+          .timeout(const Duration(seconds: 5));
       return response.statusCode == 200;
     } catch (e) {
       return false;
@@ -56,7 +58,8 @@ class ApiService {
   }
 
   /// Get Google auth URL
-  Future<String?> getGoogleAuthUrl({String? redirectUri, String platform = 'web'}) async {
+  Future<String?> getGoogleAuthUrl(
+      {String? redirectUri, String platform = 'web'}) async {
     final uri = Uri.parse('$baseUrl/api/auth/google/login').replace(
       queryParameters: {
         if (redirectUri != null) 'redirect_uri': redirectUri,
@@ -115,7 +118,9 @@ class ApiService {
     if (response.statusCode == 200) {
       return LlmSettings.fromJson(jsonDecode(response.body));
     }
-    throw ApiException(statusCode: response.statusCode, message: 'Failed to load LLM settings');
+    throw ApiException(
+        statusCode: response.statusCode,
+        message: 'Failed to load LLM settings');
   }
 
   /// Update the LLM provider/model
@@ -136,7 +141,41 @@ class ApiService {
     if (response.statusCode == 200) {
       return LlmSettings.fromJson(jsonDecode(response.body));
     }
-    throw ApiException(statusCode: response.statusCode, message: 'Failed to update LLM settings');
+    throw ApiException(
+        statusCode: response.statusCode,
+        message: 'Failed to update LLM settings');
+  }
+
+  // ==================== Files ====================
+
+  /// Upload a file and return its ID
+  Future<String> uploadFile(String filePath) async {
+    final uri = Uri.parse('$baseUrl/api/files/upload');
+    final request = http.MultipartRequest('POST', uri);
+
+    request.headers.addAll({
+      'X-API-Key': apiKey,
+    });
+
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final streamedResponse = await _client.send(request);
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['file_id'] as String;
+    }
+
+    throw ApiException(
+      statusCode: response.statusCode,
+      message: 'Failed to upload file: ${response.body}',
+    );
+  }
+
+  /// Get file content URL
+  String getFileUrl(String fileId) {
+    return '$baseUrl/api/files/$fileId/content';
   }
 
   /// Open URL in browser
@@ -159,9 +198,10 @@ class ApiService {
     if (startDate != null) queryParams.add('start_date=$startDate');
     if (endDate != null) queryParams.add('end_date=$endDate');
     queryParams.add('max_results=$maxResults');
-    
+
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/integrations/calendar/events?${queryParams.join('&')}'),
+      Uri.parse(
+          '$baseUrl/api/integrations/calendar/events?${queryParams.join('&')}'),
       headers: _headers,
     );
 
@@ -212,7 +252,8 @@ class ApiService {
     String calendarId = 'primary',
   }) async {
     final response = await _client.post(
-      Uri.parse('$baseUrl/api/integrations/calendar/events?calendar_id=$calendarId&summary=$title&start_time=${startTime.toIso8601String()}&end_time=${endTime.toIso8601String()}${description != null ? '&description=$description' : ''}${location != null ? '&location=$location' : ''}'),
+      Uri.parse(
+          '$baseUrl/api/integrations/calendar/events?calendar_id=$calendarId&summary=$title&start_time=${startTime.toIso8601String()}&end_time=${endTime.toIso8601String()}${description != null ? '&description=$description' : ''}${location != null ? '&location=$location' : ''}'),
       headers: _headers,
     );
 
@@ -237,7 +278,8 @@ class ApiService {
     int maxResults = 100,
   }) async {
     final response = await _client.get(
-      Uri.parse('$baseUrl/api/integrations/tasks?show_completed=$showCompleted&max_results=$maxResults'),
+      Uri.parse(
+          '$baseUrl/api/integrations/tasks?show_completed=$showCompleted&max_results=$maxResults'),
       headers: _headers,
     );
 
@@ -264,7 +306,8 @@ class ApiService {
   }) async {
     final queryParams = <String>['title=${Uri.encodeComponent(title)}'];
     if (notes != null) queryParams.add('notes=${Uri.encodeComponent(notes)}');
-    if (dueDate != null) queryParams.add('due_date=${dueDate.toIso8601String()}');
+    if (dueDate != null)
+      queryParams.add('due_date=${dueDate.toIso8601String()}');
 
     final response = await _client.post(
       Uri.parse('$baseUrl/api/integrations/tasks?${queryParams.join('&')}'),
@@ -305,10 +348,9 @@ class ApiService {
     String timezone = 'Europe/Istanbul',
     int? conversationId,
   }) async {
-    final queryParams = conversationId != null
-        ? '?conversation_id=$conversationId'
-        : '';
-    
+    final queryParams =
+        conversationId != null ? '?conversation_id=$conversationId' : '';
+
     final response = await _client.post(
       Uri.parse('$baseUrl/chat$queryParams'),
       headers: _headers,
@@ -358,7 +400,8 @@ class ApiService {
   Future<String> getTTSAudio(
     String text, {
     String voice = 'marin',
-    String instructions = 'Speak in an energetic, happy, and upbeat tone. Be enthusiastic and friendly.',
+    String instructions =
+        'Speak in an energetic, happy, and upbeat tone. Be enthusiastic and friendly.',
   }) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/api/voice/tts'),
@@ -475,7 +518,8 @@ class ApiService {
     if (endDate != null) {
       queryParams.add('end_date=${endDate.toIso8601String()}');
     }
-    final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+    final queryString =
+        queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
 
     final response = await _client.get(
       Uri.parse('$baseUrl/calendar$queryString'),
@@ -599,7 +643,8 @@ class ApiService {
   }
 
   /// Send an email (requires confirmation)
-  Future<Map<String, dynamic>> sendEmail(int emailId, {bool confirmed = false}) async {
+  Future<Map<String, dynamic>> sendEmail(int emailId,
+      {bool confirmed = false}) async {
     final response = await _client.post(
       Uri.parse('$baseUrl/email/send?email_id=$emailId&confirmed=$confirmed'),
       headers: _headers,
@@ -624,9 +669,8 @@ class ApiService {
     int? conversationId,
     List<String>? images,
   }) async* {
-    final queryParams = conversationId != null
-        ? '?conversation_id=$conversationId'
-        : '';
+    final queryParams =
+        conversationId != null ? '?conversation_id=$conversationId' : '';
 
     final request = http.Request(
       'POST',
@@ -723,18 +767,20 @@ class ApiService {
 
     // Send with timeout
     final streamedResponse = await request.send().timeout(
-      const Duration(seconds: 60),
-      onTimeout: () => throw ApiException(
-        statusCode: 408,
-        message: 'Upload timed out after 60 seconds',
-      ),
-    );
-    
+          const Duration(seconds: 60),
+          onTimeout: () => throw ApiException(
+            statusCode: 408,
+            message: 'Upload timed out after 60 seconds',
+          ),
+        );
+
     final body = await streamedResponse.stream.bytesToString();
     if (streamedResponse.statusCode == 200) {
       return jsonDecode(body) as Map<String, dynamic>;
     }
-    throw ApiException(statusCode: streamedResponse.statusCode, message: 'Upload failed: $body');
+    throw ApiException(
+        statusCode: streamedResponse.statusCode,
+        message: 'Upload failed: $body');
   }
 
   // ==================== Conversation History ====================
@@ -875,11 +921,15 @@ class LlmSettings {
   factory LlmSettings.fromJson(Map<String, dynamic> json) {
     return LlmSettings(
       provider: json['provider'] as String? ?? 'mock',
-      availableProviders: (json['available_providers'] as List?)?.map((e) => e.toString()).toList() 
-          ?? (json['available'] as List?)?.map((e) => e.toString()).toList() 
-          ?? const ['mock'],
-      availableModels: (json['available_models'] as List?)?.map((e) => e.toString()).toList() 
-          ?? const ['gpt-4-turbo-preview'],
+      availableProviders: (json['available_providers'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          (json['available'] as List?)?.map((e) => e.toString()).toList() ??
+          const ['mock'],
+      availableModels: (json['available_models'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const ['gpt-4-turbo-preview'],
       model: json['model'] as String?,
       baseUrl: json['base_url'] as String?,
     );
@@ -1048,7 +1098,7 @@ class GoogleTask {
   });
 
   bool get isCompleted => status == 'completed';
-  
+
   bool get isOverdue {
     if (due == null || isCompleted) return false;
     return due!.isBefore(DateTime.now());
@@ -1061,7 +1111,9 @@ class GoogleTask {
       notes: json['notes'],
       due: json['due'] != null ? DateTime.tryParse(json['due']) : null,
       status: json['status'] ?? 'needsAction',
-      completed: json['completed'] != null ? DateTime.tryParse(json['completed']) : null,
+      completed: json['completed'] != null
+          ? DateTime.tryParse(json['completed'])
+          : null,
     );
   }
 }

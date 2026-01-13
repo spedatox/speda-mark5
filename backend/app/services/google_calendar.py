@@ -38,19 +38,33 @@ class GoogleCalendarService:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         max_results: int = 50,
+        timezone: str = "Europe/Istanbul",
     ) -> list[dict]:
         """Synchronous version of get_events."""
+        from zoneinfo import ZoneInfo
+        
         service = self._get_service()
         
+        tz = ZoneInfo(timezone)
+        
         if start_date is None:
-            start_date = datetime.utcnow()
+            start_date = datetime.now(tz)
+        elif start_date.tzinfo is None:
+            # Naive datetime - assume it's in the user's timezone
+            start_date = start_date.replace(tzinfo=tz)
+            
         if end_date is None:
             end_date = start_date + timedelta(days=7)
+        elif end_date.tzinfo is None:
+            # Naive datetime - assume it's in the user's timezone
+            end_date = end_date.replace(tzinfo=tz)
 
+        # Use RFC3339 format with timezone offset (Google Calendar API accepts this)
         events_result = service.events().list(
             calendarId=calendar_id,
-            timeMin=start_date.isoformat() + "Z",
-            timeMax=end_date.isoformat() + "Z",
+            timeMin=start_date.isoformat(),
+            timeMax=end_date.isoformat(),
+            timeZone=timezone,
             maxResults=max_results,
             singleEvents=True,
             orderBy="startTime",
@@ -64,6 +78,7 @@ class GoogleCalendarService:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         max_results: int = 50,
+        timezone: str = "Europe/Istanbul",
     ) -> list[dict]:
         """Get events from a calendar.
         
@@ -72,12 +87,13 @@ class GoogleCalendarService:
             start_date: Start of time range (default: now)
             end_date: End of time range (default: 7 days from now)
             max_results: Maximum number of events to return
+            timezone: User's timezone for proper date handling
             
         Returns:
             List of event dictionaries
         """
         return await asyncio.to_thread(
-            self._get_events_sync, calendar_id, start_date, end_date, max_results
+            self._get_events_sync, calendar_id, start_date, end_date, max_results, timezone
         )
 
     async def get_today_events(self, calendar_id: str = "primary") -> list[dict]:

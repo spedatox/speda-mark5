@@ -23,7 +23,7 @@ class AppConfig {
 
   /// Get current backend mode
   static String get backendMode =>
-      _cachedBackendMode ?? (kDebugMode ? localMode : cloudMode);
+      _cachedBackendMode ?? cloudMode; // Default to cloud, even in debug
 
   /// Check if using local backend
   static bool get isLocalBackend => backendMode == localMode;
@@ -49,7 +49,7 @@ class AppConfig {
   }
 
   /// Cloud backend URL
-  static const String cloudBackendUrl = 'http://speda.spedatox.systems:8000';
+  static const String cloudBackendUrl = 'http://157.173.111.215:8000';
 
   /// Base URL for the Speda API (dynamic based on mode)
   static String get apiBaseUrl {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'core/theme/jarvis_theme.dart';
+import 'core/theme/speda_theme.dart';
 import 'core/navigation/app_router.dart';
 
 class SpedaApp extends StatelessWidget {
@@ -9,19 +9,19 @@ class SpedaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Speda',
+      title: 'SPEDA',
       debugShowCheckedModeBanner: false,
-      theme: JarvisTheme.darkTheme,
-      darkTheme: JarvisTheme.darkTheme,
+      theme: SpedaTheme.dark,
+      darkTheme: SpedaTheme.dark,
       themeMode: ThemeMode.dark,
       initialRoute: AppRouter.chat,
       onGenerateRoute: AppRouter.generateRoute,
       builder: (context, child) {
-        // Force FSIndustrie as default text style to avoid any inheritance misses
+        // Force Inter as default text style
         final base = Theme.of(context).textTheme.bodyMedium ??
-            const TextStyle(fontSize: 14, fontFamily: JarvisTheme.fontFamily);
+            const TextStyle(fontSize: 14, fontFamily: 'Inter');
         return DefaultTextStyle(
-          style: base.copyWith(fontFamily: JarvisTheme.fontFamily),
+          style: base.copyWith(fontFamily: 'Inter'),
           child: child ?? const SizedBox.shrink(),
         );
       },
