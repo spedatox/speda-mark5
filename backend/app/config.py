@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     app_name: str = "Speda"
     app_version: str = "0.1.0"
     debug: bool = False
-    api_base_url: str = "http://localhost:8000"  # Base URL for API responses
+    api_base_url: str = "http://157.173.111.215:8000"  # Base URL for API responses
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./speda.db"
