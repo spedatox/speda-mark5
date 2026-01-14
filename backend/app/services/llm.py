@@ -511,14 +511,32 @@ Just output the title."""
             response.raise_for_status()
             data = response.json()
             
-            title = data.get("output_text", "Yeni Sohbet")
+            # Properly extract text from Responses API format
+            title = ""
+            output = data.get("output", [])
+            for item in output:
+                if item.get("type") == "message":
+                    for content in item.get("content", []):
+                        if content.get("type") == "output_text":
+                            title = content.get("text", "")
+                            break
+                    if title:
+                        break
+            
+            # Fallback to output_text shorthand if nested extraction failed
+            if not title:
+                title = data.get("output_text", "")
+            
+            # Clean up the title
             title = title.strip().strip('"').strip("'").strip()
+            if not title or len(title) < 2:
+                return "New Chat"
             if len(title) > 50:
                 title = title[:50]
             return title
         except Exception as e:
             print(f"Error generating title: {e}")
-            return "Yeni Sohbet"
+            return "New Chat"
 
     # Helper method for vision - kept for compatibility
     def _supports_vision(self) -> bool:

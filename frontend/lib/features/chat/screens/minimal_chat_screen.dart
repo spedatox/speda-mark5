@@ -5,7 +5,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart'; // For Clipboard
 import 'package:file_picker/file_picker.dart';
-import 'package:markdown/markdown.dart' as md; // For ElementBuilder
 
 import '../../../core/theme/speda_theme.dart';
 import '../../../core/services/api_service.dart';
@@ -223,7 +222,7 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
 
     // AI message - no bubble, with response header (Gemini style)
     return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 8, right: 40),
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -382,55 +381,185 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
     final codeColor = isUser ? Colors.white : SpedaColors.primary;
     final codeBg = isUser ? Colors.black26 : SpedaColors.surfaceLight;
 
-    return MarkdownBody(
-      data: content,
-      selectable: true,
-      builders: {
-        'pre': CodeBlockBuilder(context),
-      },
-      styleSheet: MarkdownStyleSheet(
-        p: SpedaTypography.body.copyWith(color: textColor),
-        h1: SpedaTypography.heading.copyWith(color: textColor),
-        h2: SpedaTypography.title.copyWith(color: textColor),
-        h3: SpedaTypography.title.copyWith(fontSize: 15, color: textColor),
-        strong: SpedaTypography.body.copyWith(
-          fontWeight: FontWeight.w600,
-          color: textColor,
-        ),
-        em: SpedaTypography.body.copyWith(
-          fontStyle: FontStyle.italic,
-          color: textColor,
-        ),
-        code: TextStyle(
-          color: codeColor,
-          backgroundColor: codeBg,
-          fontFamily: 'monospace',
-          fontSize: 13,
-        ),
-        codeblockDecoration: BoxDecoration(
-          color: codeBg,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        codeblockPadding: const EdgeInsets.all(12),
-        blockquoteDecoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(color: codeColor, width: 2),
-          ),
-        ),
-        blockquotePadding: const EdgeInsets.only(left: 12),
-        a: TextStyle(
-          color: codeColor,
-          decoration: TextDecoration.underline,
-        ),
-      ),
-      onTapLink: (text, href, title) async {
-        if (href != null) {
-          final uri = Uri.parse(href);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
+    // Parse content into segments (text and code blocks)
+    final segments = _parseContentSegments(content);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: segments.map((segment) {
+        if (segment.isCodeBlock) {
+          // Custom code block with header
+          return _buildCodeBlock(segment.language, segment.content);
+        } else {
+          // Regular markdown
+          return MarkdownBody(
+            data: segment.content,
+            selectable: true,
+            shrinkWrap: true,
+            styleSheet: MarkdownStyleSheet(
+              p: SpedaTypography.body.copyWith(color: textColor),
+              h1: SpedaTypography.heading.copyWith(color: textColor),
+              h2: SpedaTypography.title.copyWith(color: textColor),
+              h3: SpedaTypography.title
+                  .copyWith(fontSize: 15, color: textColor),
+              strong: SpedaTypography.body.copyWith(
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
+              em: SpedaTypography.body.copyWith(
+                fontStyle: FontStyle.italic,
+                color: textColor,
+              ),
+              code: TextStyle(
+                color: codeColor,
+                backgroundColor: codeBg,
+                fontFamily: 'monospace',
+                fontSize: 13,
+              ),
+              codeblockDecoration: BoxDecoration(
+                color: codeBg,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              codeblockPadding: const EdgeInsets.all(12),
+              blockquoteDecoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: codeColor, width: 2),
+                ),
+              ),
+              blockquotePadding: const EdgeInsets.only(left: 12),
+              a: TextStyle(
+                color: codeColor,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+            onTapLink: (text, href, title) async {
+              if (href != null) {
+                final uri = Uri.parse(href);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              }
+            },
+          );
         }
-      },
+      }).toList(),
+    );
+  }
+
+  /// Parse markdown content into segments (text vs code blocks)
+  List<_ContentSegment> _parseContentSegments(String content) {
+    final segments = <_ContentSegment>[];
+    final codeBlockRegex = RegExp(r'```(\w*)\n([\s\S]*?)```', multiLine: true);
+
+    int lastEnd = 0;
+    for (final match in codeBlockRegex.allMatches(content)) {
+      // Add text before this code block
+      if (match.start > lastEnd) {
+        final textBefore = content.substring(lastEnd, match.start).trim();
+        if (textBefore.isNotEmpty) {
+          segments
+              .add(_ContentSegment(content: textBefore, isCodeBlock: false));
+        }
+      }
+
+      // Add the code block
+      final language = match.group(1) ?? '';
+      final code = match.group(2) ?? '';
+      segments.add(_ContentSegment(
+        content: code.trim(),
+        isCodeBlock: true,
+        language: language.isEmpty ? 'code' : language,
+      ));
+
+      lastEnd = match.end;
+    }
+
+    // Add remaining text after last code block
+    if (lastEnd < content.length) {
+      final textAfter = content.substring(lastEnd).trim();
+      if (textAfter.isNotEmpty) {
+        segments.add(_ContentSegment(content: textAfter, isCodeBlock: false));
+      }
+    }
+
+    // If no code blocks found, return original content
+    if (segments.isEmpty) {
+      segments.add(_ContentSegment(content: content, isCodeBlock: false));
+    }
+
+    return segments;
+  }
+
+  /// Build custom code block with header and copy button
+  Widget _buildCodeBlock(String language, String code) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF1E1F20),
+        border: Border.all(color: SpedaColors.borderSubtle),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header with language and copy button
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFF2A2B2D),
+              border: Border(
+                bottom: BorderSide(color: SpedaColors.borderSubtle),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  language.toLowerCase(),
+                  style: const TextStyle(
+                    color: SpedaColors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'Inter',
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: code));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Code copied to clipboard'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  child: const Icon(
+                    Icons.content_copy_rounded,
+                    size: 18,
+                    color: SpedaColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Code content
+          Container(
+            padding: const EdgeInsets.all(14),
+            width: double.infinity,
+            child: SelectableText(
+              code,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 13,
+                color: SpedaColors.textPrimary,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -731,102 +860,15 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
   // Drawer logic moved to core/widgets/speda_drawer.dart
 }
 
-/// Custom builder for code blocks to add header and copy button
-class CodeBlockBuilder extends MarkdownElementBuilder {
-  final BuildContext context;
-  CodeBlockBuilder(this.context);
+/// Helper class for parsing markdown content into segments
+class _ContentSegment {
+  final String content;
+  final bool isCodeBlock;
+  final String language;
 
-  @override
-  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
-    if (element.tag != 'pre') return null;
-
-    // Fenced code blocks are usually <pre><code class="language-xyz">...</code></pre>
-    if (element.children != null &&
-        element.children!.isNotEmpty &&
-        element.children!.first is md.Element &&
-        (element.children!.first as md.Element).tag == 'code') {
-      final codeElement = element.children!.first as md.Element;
-      final languageClass = codeElement.attributes['class'] ?? '';
-
-      // Extract language name (e.g. language-python -> python)
-      String language = '';
-      if (languageClass.startsWith('language-')) {
-        language = languageClass.substring(9);
-      } else {
-        language = languageClass; // fallback
-      }
-
-      if (language.isEmpty) language = 'code';
-
-      // Extract raw code text
-      final textContent = codeElement.textContent;
-
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: SpedaColors.surface, // Container bg
-          border: Border.all(color: SpedaColors.borderSubtle),
-        ),
-        clipBehavior: Clip.hardEdge,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: const Color(0xFF2D2E30), // Slightly darker header
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    language.toUpperCase(),
-                    style: const TextStyle(
-                      color: SpedaColors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: textContent));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Code copied!'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                    child: const Icon(
-                      Icons.content_copy_rounded,
-                      size: 16,
-                      color: SpedaColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Code Content
-            Container(
-              padding: const EdgeInsets.all(12),
-              color: const Color(0xFF1E1F20), // Dark code bg
-              width: double.infinity,
-              child: SelectableText(
-                textContent,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 13,
-                  color: SpedaColors.textPrimary,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    return null;
-  }
+  _ContentSegment({
+    required this.content,
+    required this.isCodeBlock,
+    this.language = '',
+  });
 }
