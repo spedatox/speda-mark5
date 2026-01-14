@@ -84,6 +84,31 @@ class _MinimalBriefingScreenState extends State<MinimalBriefingScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Top row with Menu Button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            GestureDetector(
+              onTap: () => Scaffold.of(context).openDrawer(),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(
+                    bottom: 16,
+                    left: 4), // Negative margin visually? No, just padding
+                decoration: BoxDecoration(
+                  color: SpedaColors.surfaceLight,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.menu_rounded,
+                  size: 24,
+                  color: SpedaColors.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+
         Text(
           'Good ${_getTimeOfDay()}',
           style: SpedaTypography.displayLarge.copyWith(

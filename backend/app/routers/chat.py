@@ -365,7 +365,7 @@ After executing any function, provide a natural, conversational response."""
                 await conversation_engine.add_message(conversation, "assistant", full_response)
                 
                 # Generate title for new conversations (when there's only user + assistant message)
-                if conversation.title is None:
+                if conversation.title is None or conversation.title == "Yeni Sohbet":
                     try:
                         title = await llm.generate_conversation_title(
                             request.message, 

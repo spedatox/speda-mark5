@@ -6,33 +6,38 @@ import 'package:flutter/material.dart';
 class SpedaColors {
   SpedaColors._();
 
-  // Core backgrounds - deep, rich blacks
-  static const Color background = Color(0xFF0A0A0C);
-  static const Color surface = Color(0xFF121216);
-  static const Color surfaceLight = Color(0xFF1A1A1F);
-  static const Color surfaceElevated = Color(0xFF222228);
+  // Core backgrounds - Gemini-style deep blacks
+  static const Color background = Color(0xFF131314);
+  static const Color surface = Color(0xFF1E1F20);
+  static const Color surfaceLight = Color(0xFF282A2C);
+  static const Color surfaceElevated = Color(0xFF303134);
 
-  // Primary accent - refined cyan
-  static const Color primary = Color(0xFF00C8FF);
-  static const Color primaryMuted = Color(0xFF0099CC);
-  static const Color primarySubtle = Color(0xFF003344);
+  // Primary accent - Gemini soft blue
+  static const Color primary = Color(0xFF8AB4F8);
+  static const Color primaryMuted = Color(0xFF669DF6);
+  static const Color primarySubtle = Color(0xFF1A3A5C);
 
   // Semantic colors
-  static const Color success = Color(0xFF34C759);
-  static const Color warning = Color(0xFFFFCC00);
-  static const Color error = Color(0xFFFF3B30);
+  static const Color success = Color(0xFF81C995);
+  static const Color warning = Color(0xFFFDD663);
+  static const Color error = Color(0xFFF28B82);
 
   // Text hierarchy
-  static const Color textPrimary = Color(0xFFF5F5F7);
-  static const Color textSecondary = Color(0xFF8E8E93);
-  static const Color textTertiary = Color(0xFF48484A);
+  static const Color textPrimary = Color(0xFFE8EAED);
+  static const Color textSecondary = Color(0xFF9AA0A6);
+  static const Color textTertiary = Color(0xFF5F6368);
 
   // Borders & dividers
-  static const Color border = Color(0xFF2C2C2E);
-  static const Color borderSubtle = Color(0xFF1C1C1E);
+  static const Color border = Color(0xFF3C4043);
+  static const Color borderSubtle = Color(0xFF28292A);
 
-  // User message accent (warm contrast)
-  static const Color userAccent = Color(0xFF0A84FF);
+  // Message colors (Gemini-style)
+  static const Color userBubble = Color(0xFF3C4043);
+  static const Color userAccent = Color(0xFF8AB4F8);
+
+  // Input bar
+  static const Color inputBackground = Color(0xFF1E1F20);
+  static const Color inputBorder = Color(0xFF3C4043);
 }
 
 /// Minimal design tokens
@@ -168,7 +173,8 @@ class SpedaTheme {
           borderRadius: BorderRadius.circular(SpedaRadius.xl),
           borderSide: const BorderSide(color: SpedaColors.primary, width: 1),
         ),
-        hintStyle: SpedaTypography.body.copyWith(color: SpedaColors.textTertiary),
+        hintStyle:
+            SpedaTypography.body.copyWith(color: SpedaColors.textTertiary),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: SpedaSpacing.lg,
           vertical: SpedaSpacing.md,
@@ -230,8 +236,10 @@ class SpedaTheme {
         unselectedItemColor: SpedaColors.textTertiary,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-        unselectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+        selectedLabelStyle:
+            TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+        unselectedLabelStyle:
+            TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
       ),
 
       // Text theme
@@ -288,10 +296,13 @@ class SpedaWidgets {
           vertical: SpedaSpacing.sm + 2,
         ),
         decoration: BoxDecoration(
-          color: isActive ? SpedaColors.primarySubtle : SpedaColors.surfaceLight,
+          color:
+              isActive ? SpedaColors.primarySubtle : SpedaColors.surfaceLight,
           borderRadius: BorderRadius.circular(SpedaRadius.full),
           border: Border.all(
-            color: isActive ? SpedaColors.primary.withOpacity(0.3) : SpedaColors.border,
+            color: isActive
+                ? SpedaColors.primary.withOpacity(0.3)
+                : SpedaColors.border,
             width: 1,
           ),
         ),
@@ -302,14 +313,16 @@ class SpedaWidgets {
               Icon(
                 icon,
                 size: 16,
-                color: isActive ? SpedaColors.primary : SpedaColors.textSecondary,
+                color:
+                    isActive ? SpedaColors.primary : SpedaColors.textSecondary,
               ),
               const SizedBox(width: SpedaSpacing.xs + 2),
             ],
             Text(
               label,
               style: SpedaTypography.label.copyWith(
-                color: isActive ? SpedaColors.primary : SpedaColors.textSecondary,
+                color:
+                    isActive ? SpedaColors.primary : SpedaColors.textSecondary,
               ),
             ),
           ],

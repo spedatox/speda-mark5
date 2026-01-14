@@ -590,12 +590,19 @@ class ApiService {
 
   // ==================== Briefing ====================
 
-  /// Get today's briefing
+  /// Get today's briefing with optional location for weather
   Future<BriefingModel> getTodayBriefing({
     String timezone = 'Europe/Istanbul',
+    double? latitude,
+    double? longitude,
   }) async {
+    String url = '$baseUrl/briefing/today?timezone=$timezone';
+    if (latitude != null && longitude != null) {
+      url += '&latitude=$latitude&longitude=$longitude';
+    }
+
     final response = await _client.get(
-      Uri.parse('$baseUrl/briefing/today?timezone=$timezone'),
+      Uri.parse(url),
       headers: _headers,
     );
 

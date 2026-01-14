@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart'; // For Clipboard
 import 'package:file_picker/file_picker.dart';
+import 'package:markdown/markdown.dart' as md; // For ElementBuilder
 
 import '../../../core/theme/speda_theme.dart';
 import '../../../core/services/api_service.dart';
-import '../../../core/models/api_response.dart';
+import '../../../core/widgets/main_scaffold.dart';
 import '../providers/chat_provider.dart';
 
 /// Ultra-minimal chat screen - 2026 design
@@ -51,17 +53,27 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
     final message = _textController.text.trim();
     if (message.isEmpty) return;
 
-    context.read<ChatProvider>().sendMessage(message);
+    if (_editingMessageIndex != null) {
+      // We're editing - use editMessage from provider to regenerate
+      context.read<ChatProvider>().editMessage(_editingMessageIndex!, message);
+      _editingMessageIndex = null;
+    } else {
+      // Normal send
+      context.read<ChatProvider>().sendMessage(message);
+    }
     _textController.clear();
     _focusNode.requestFocus();
   }
+
+  // Track if we're editing a message for regeneration
+  int? _editingMessageIndex;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: SpedaColors.background,
-      drawer: _buildHistoryDrawer(),
+      // drawer: _buildHistoryDrawer(), // Removed: using global drawer
       body: SafeArea(
         child: Column(
           children: [
@@ -76,80 +88,43 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          // Menu button
+          // Menu button (opens drawer with history + other screens)
+          // Use Builder to get context under Scaffold if needed, but here we are in MainScaffold
+          // actually MinimalChatScreen is child of MainScaffold so Scaffold.of(context) gets MainScaffold
           GestureDetector(
-            onTap: () => _scaffoldKey.currentState?.openDrawer(),
+            onTap: () => Scaffold.of(context).openDrawer(),
             child: const Icon(
               Icons.menu_rounded,
               color: SpedaColors.textSecondary,
-              size: 24,
+              size: 26,
             ),
           ),
-          const SizedBox(width: 16),
 
-          // Title & status
+          // Centered title (Gemini style)
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'SPEDA',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: SpedaColors.textPrimary,
-                    letterSpacing: -0.3,
-                  ),
+            child: Center(
+              child: Text(
+                'S.P.E.D.A.',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: SpedaColors.textPrimary,
                 ),
-                const SizedBox(height: 2),
-                Consumer<ChatProvider>(
-                  builder: (context, provider, _) {
-                    final isOnline = provider.isBackendConnected;
-                    return Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: isOnline
-                                ? SpedaColors.success
-                                : SpedaColors.textTertiary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          isOnline ? 'Online' : 'Offline',
-                          style: SpedaTypography.caption.copyWith(
-                            color: SpedaColors.textTertiary,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
+              ),
             ),
           ),
 
           // New chat button
           GestureDetector(
             onTap: () => context.read<ChatProvider>().clearConversation(),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: SpedaColors.surfaceLight,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.add_rounded,
-                color: SpedaColors.textSecondary,
-                size: 20,
-              ),
+            child: const Icon(
+              Icons.edit_square,
+              color: SpedaColors.textSecondary,
+              size: 22,
             ),
           ),
         ],
@@ -190,109 +165,211 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
     final hasAttachments =
         message.attachments != null && message.attachments!.isNotEmpty;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Flexible(
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.8,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: isUser ? SpedaColors.userAccent : SpedaColors.surface,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
-                  bottomLeft: Radius.circular(isUser ? 18 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 18),
+    if (isUser) {
+      // User message - compact gray pill, right aligned
+      return Padding(
+        padding: const EdgeInsets.only(top: 16, bottom: 8, left: 60),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Flexible(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: SpedaColors.userBubble,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (hasAttachments) ...[
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: message.attachments!.map((attachment) {
+                          return Container(
+                            constraints: const BoxConstraints(
+                                maxHeight: 150, maxWidth: 150),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.file(File(attachment.path),
+                                  fit: BoxFit.cover),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    Text(
+                      message.content,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 15,
+                        color: SpedaColors.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Display attachments if any
-                  if (hasAttachments) ...[
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: message.attachments!.map((attachment) {
-                        return Container(
-                          constraints: const BoxConstraints(
-                            maxHeight: 200,
-                            maxWidth: 200,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isUser
-                                  ? Colors.white.withOpacity(0.2)
-                                  : SpedaColors.border,
-                            ),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(
-                              File(attachment.path),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-
-                  if (showProcessing) ...[
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
-                            color: SpedaColors.textTertiary,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          message.processingStatus!,
-                          style: SpedaTypography.caption.copyWith(
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  if (isUser)
-                    _buildMarkdownContent(message.content, isUser: true)
-                  else
-                    _buildMarkdownContent(
-                      message.isStreaming
-                          ? '${message.content}▌'
-                          : message.content,
-                    ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatTime(message.timestamp),
-                    style: SpedaTypography.caption.copyWith(
-                      color: isUser
-                          ? Colors.white.withOpacity(0.6)
-                          : SpedaColors.textTertiary,
-                    ),
-                  ),
-                ],
-              ),
             ),
+          ],
+        ),
+      );
+    }
+
+    // AI message - no bubble, with response header (Gemini style)
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 8, right: 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Processing indicator (animated sparkle)
+          if (showProcessing) ...[
+            Row(
+              children: [
+                _buildSparkleIcon(),
+                const SizedBox(width: 10),
+                Text(
+                  message.processingStatus!,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    color: SpedaColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // AI response text (no bubble)
+          _buildMarkdownContent(
+            message.isStreaming ? '${message.content}▌' : message.content,
           ),
+
+          // Actions below text (Regenerate, Edit, etc) - Left aligned
+          if (!showProcessing &&
+              !message.isStreaming &&
+              message.content.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                // Regenerate
+                GestureDetector(
+                  onTap: () => _regenerateMessage(),
+                  child: const Icon(Icons.refresh_rounded,
+                      size: 18, color: SpedaColors.textSecondary),
+                ),
+                const SizedBox(width: 20),
+                // Edit
+                GestureDetector(
+                  onTap: () => _editMessage(message),
+                  child: const Icon(Icons.edit_outlined,
+                      size: 18, color: SpedaColors.textSecondary),
+                ),
+                const SizedBox(width: 20),
+                // Speaker
+                GestureDetector(
+                  onTap: () => _speakMessage(message.content),
+                  child: const Icon(Icons.volume_up_outlined,
+                      size: 18, color: SpedaColors.textSecondary),
+                ),
+                const SizedBox(width: 20),
+                // Copy (Adding for utility)
+                GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: message.content));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Copied to clipboard'),
+                          duration: Duration(seconds: 1)),
+                    );
+                  },
+                  child: const Icon(Icons.copy_rounded,
+                      size: 16, color: SpedaColors.textSecondary),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildSparkleIcon() {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 1500),
+      builder: (context, value, child) {
+        return Transform.rotate(
+          angle: value * 0.5,
+          child: Icon(
+            Icons.auto_awesome,
+            size: 20,
+            color: SpedaColors.primary.withOpacity(0.5 + value * 0.5),
+          ),
+        );
+      },
+    );
+  }
+
+  void _speakMessage(String content) async {
+    try {
+      final apiService = context.read<ApiService>();
+      // Get TTS audio URL from backend
+      final audioUrl = await apiService.getTTSAudio(content);
+      if (audioUrl.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Playing audio...'),
+              duration: Duration(seconds: 1)),
+        );
+        // Audio playback would be handled by just_audio or similar
+        // For now show success
+        debugPrint('TTS Audio URL: $audioUrl');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('TTS unavailable'),
+            backgroundColor: SpedaColors.error),
+      );
+    }
+  }
+
+  void _regenerateMessage() {
+    final provider = context.read<ChatProvider>();
+    // Call existing regenerateLastResponse which finds and re-sends last user message
+    provider.regenerateLastResponse();
+  }
+
+  void _editMessage(ChatMessage message) {
+    final provider = context.read<ChatProvider>();
+    final messages = provider.messages;
+
+    // Find the user message that triggered this AI response
+    int aiMessageIndex = messages.indexOf(message);
+    if (aiMessageIndex <= 0) return;
+
+    // The user message is the one right before the AI response
+    final userMessage = messages[aiMessageIndex - 1];
+    if (!userMessage.isUser) return;
+
+    // Put the user message in the input field for editing
+    _textController.text = userMessage.content;
+    _focusNode.requestFocus();
+
+    // Store the index so when user submits, we can remove old messages and regenerate
+    _editingMessageIndex = aiMessageIndex - 1;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Edit your message and send to regenerate'),
+          duration: Duration(seconds: 2)),
     );
   }
 
@@ -308,6 +385,9 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
     return MarkdownBody(
       data: content,
       selectable: true,
+      builders: {
+        'pre': CodeBlockBuilder(context),
+      },
       styleSheet: MarkdownStyleSheet(
         p: SpedaTypography.body.copyWith(color: textColor),
         h1: SpedaTypography.heading.copyWith(color: textColor),
@@ -355,82 +435,81 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
   }
 
   Widget _buildWelcomeScreen() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // App Logo
-            SizedBox(
-              width: 100,
-              height: 100,
-              child: Image.asset(
-                'assets/images/speda_ui_logo.png',
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            const Text(
-              'SPEDA',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 28,
-                fontWeight: FontWeight.w600,
-                color: SpedaColors.textPrimary,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Personal Executive System',
-              style: SpedaTypography.bodySmall.copyWith(
-                color: SpedaColors.textTertiary,
-              ),
-            ),
-
-            const SizedBox(height: 48),
-
-            // Quick actions
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              alignment: WrapAlignment.center,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Speda Branding (Logo + Slogan)
+          Center(
+            child: Column(
               children: [
-                _buildQuickAction(
-                    'Tasks', Icons.check_circle_outline, 'Show my tasks'),
-                _buildQuickAction('Schedule', Icons.calendar_today_outlined,
-                    'What\'s on my calendar today?'),
-                _buildQuickAction('Briefing', Icons.wb_sunny_outlined,
-                    'Give me my daily briefing'),
+                // Logo
+                Image.asset(
+                  'assets/images/speda_ui_logo.png',
+                  height: 120, // Bigger logo
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 24),
+                // Full name slogan (One row)
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'SPECIALIZED PERSONAL EXECUTIVE DIGITAL ASSISTANT',
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: SpedaColors.textSecondary,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+
+          const SizedBox(height: 40),
+
+          // Suggestion chips (Gemini style - vertical stack)
+          _buildSuggestionChip(
+              '📋', 'Check my tasks', 'Show my tasks for today'),
+          const SizedBox(height: 12),
+          _buildSuggestionChip(
+              '📅', 'My schedule', 'What\'s on my calendar today?'),
+          const SizedBox(height: 12),
+          _buildSuggestionChip(
+              '☀️', 'Daily briefing', 'Give me my morning briefing'),
+          const SizedBox(height: 12),
+          _buildSuggestionChip(
+              '✨', 'Start my day', 'Help me plan and prioritize today'),
+        ],
       ),
     );
   }
 
-  Widget _buildQuickAction(String label, IconData icon, String message) {
+  Widget _buildSuggestionChip(String emoji, String label, String message) {
     return GestureDetector(
       onTap: () => context.read<ChatProvider>().sendMessage(message),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: SpedaColors.surfaceLight,
+          color: SpedaColors.surface,
           borderRadius: BorderRadius.circular(50),
-          border: Border.all(color: SpedaColors.border, width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18, color: SpedaColors.textSecondary),
-            const SizedBox(width: 8),
+            Text(emoji, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 10),
             Text(
               label,
-              style: SpedaTypography.label.copyWith(
-                color: SpedaColors.textSecondary,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+                color: SpedaColors.textPrimary,
               ),
             ),
           ],
@@ -443,40 +522,37 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
     return Consumer<ChatProvider>(
       builder: (context, provider, child) {
         return Container(
-          padding: const EdgeInsets.all(16),
+          // Native style: Rounded top corners, minimal top padding
           decoration: BoxDecoration(
-            color: SpedaColors.surface,
-            border: Border(
-              top: BorderSide(color: SpedaColors.border, width: 0.5),
-            ),
+            color: SpedaColors.surface, // Match nav bar color
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           ),
+          padding: const EdgeInsets.only(top: 12), // "Very few padding" on top
           child: SafeArea(
             top: false,
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image Previews (Gemini style)
+                // Image Previews
                 if (provider.hasAttachments)
                   Container(
-                    height: 100,
-                    margin: const EdgeInsets.only(bottom: 12),
+                    height: 80,
+                    margin: const EdgeInsets.fromLTRB(
+                        16, 12, 16, 4), // Add padding here
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: provider.pendingAttachments.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(width: 12),
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         final attachment = provider.pendingAttachments[index];
                         return Stack(
                           clipBehavior: Clip.none,
                           children: [
                             Container(
-                              width: 100,
-                              height: 100,
+                              width: 80,
+                              height: 80,
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: SpedaColors.border),
+                                borderRadius: BorderRadius.circular(12),
                                 image: DecorationImage(
                                   image: FileImage(File(attachment.path)),
                                   fit: BoxFit.cover,
@@ -484,30 +560,19 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
                               ),
                             ),
                             Positioned(
-                              top: -8,
-                              right: -8,
+                              top: -6,
+                              right: -6,
                               child: GestureDetector(
                                 onTap: () => provider.removeAttachment(index),
                                 child: Container(
-                                  padding: const EdgeInsets.all(6),
+                                  padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
                                     color: SpedaColors.surface,
                                     shape: BoxShape.circle,
-                                    border:
-                                        Border.all(color: SpedaColors.border),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Colors.black12,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
                                   ),
-                                  child: const Icon(
-                                    Icons.close_rounded,
-                                    size: 14,
-                                    color: SpedaColors.textSecondary,
-                                  ),
+                                  child: const Icon(Icons.close,
+                                      size: 12,
+                                      color: SpedaColors.textSecondary),
                                 ),
                               ),
                             ),
@@ -517,78 +582,110 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
                     ),
                   ),
 
-                // Input Row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                // Gemini-style two-row input (Native look)
+                Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Attachment button
-                    GestureDetector(
-                      onTap: provider.isLoading ? null : _pickFile,
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        margin: const EdgeInsets.only(bottom: 2),
-                        decoration: BoxDecoration(
-                          color: SpedaColors.surfaceLight,
-                          borderRadius: BorderRadius.circular(12),
+                    // Row 1: Text input only (clean)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24), // "A little padding" to the center
+                      child: TextField(
+                        controller: _textController,
+                        focusNode: _focusNode,
+                        style: SpedaTypography.body.copyWith(
+                          fontSize: 16,
+                          color: SpedaColors.textPrimary,
                         ),
-                        child: Icon(
-                          Icons.add_photo_alternate_rounded,
-                          size: 24,
-                          color: provider.isLoading
-                              ? SpedaColors.textTertiary
-                              : SpedaColors.textSecondary,
+                        maxLines: 4,
+                        minLines: 1,
+                        decoration: InputDecoration(
+                          hintText: provider.hasAttachments
+                              ? 'Ask about this image...'
+                              : 'Ask S.P.E.D.A.',
+                          hintStyle: SpedaTypography.body.copyWith(
+                            color: SpedaColors.textTertiary,
+                            fontSize: 16,
+                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          fillColor: Colors.transparent,
+                          filled: true,
+                          contentPadding: EdgeInsets.zero,
                         ),
+                        textInputAction: TextInputAction.newline,
                       ),
                     ),
-                    const SizedBox(width: 12),
 
-                    // Input field
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: SpedaColors.surfaceLight,
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: TextField(
-                          controller: _textController,
-                          focusNode: _focusNode,
-                          style: SpedaTypography.body,
-                          maxLines: 5,
-                          minLines: 1,
-                          decoration: InputDecoration(
-                            hintText: provider.hasAttachments
-                                ? 'Ask about this image...'
-                                : 'Message...',
-                            hintStyle: SpedaTypography.body.copyWith(
-                              color: SpedaColors.textTertiary,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
+                    // Row 2: Action buttons
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                          20, 8, 20, 20), // More bottom padding to lift it up
+                      child: Row(
+                        children: [
+                          // + Attach button
+                          GestureDetector(
+                            onTap: provider.isLoading ? null : _pickFile,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(
+                                    0xFF1E1E1E), // Darker circle background
+                              ),
+                              child: Icon(
+                                Icons.add_rounded,
+                                size: 24,
+                                color: SpedaColors.textSecondary,
+                              ),
                             ),
                           ),
-                          textInputAction: TextInputAction.send,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
 
-                    // Send button
-                    GestureDetector(
-                      onTap: provider.isLoading ? null : _sendMessage,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 2),
-                        decoration: BoxDecoration(
-                          color: SpedaColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.arrow_upward_rounded,
-                          size: 20,
-                          color: SpedaColors.background,
-                        ),
+                          const SizedBox(width: 8),
+
+                          // Voice mode button
+                          GestureDetector(
+                            onTap: () => _navigateToVoice(),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(
+                                    0xFF1E1E1E), // Darker circle background
+                              ),
+                              child: Icon(
+                                Icons.mic_none_rounded,
+                                size: 24,
+                                color: SpedaColors.textSecondary,
+                              ),
+                            ),
+                          ),
+
+                          const Spacer(),
+
+                          // Send button
+                          GestureDetector(
+                            onTap: provider.isLoading ? null : _sendMessage,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: const BoxDecoration(
+                                color: Colors
+                                    .transparent, // Transparent background
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                provider.isLoading
+                                    ? Icons.stop_rounded
+                                    : Icons.send_rounded,
+                                size: 24, // Slightly bigger icon
+                                color: SpedaColors.textPrimary, // White icon
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -599,6 +696,19 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
         );
       },
     );
+  }
+
+  void _navigateToVoice() {
+    // Navigate to voice screen - index 1 in MainScaffold
+    final scaffoldState = context.findAncestorStateOfType<MainScaffoldState>();
+    if (scaffoldState != null) {
+      scaffoldState.navigateTo(1);
+    } else {
+      // Fallback if not found (shouldn't happen)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Voice mode unavailable')),
+      );
+    }
   }
 
   Future<void> _pickFile() async {
@@ -618,164 +728,105 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
     }
   }
 
-  Widget _buildHistoryDrawer() {
-    return Drawer(
-      backgroundColor: SpedaColors.surface,
-      child: SafeArea(
+  // Drawer logic moved to core/widgets/speda_drawer.dart
+}
+
+/// Custom builder for code blocks to add header and copy button
+class CodeBlockBuilder extends MarkdownElementBuilder {
+  final BuildContext context;
+  CodeBlockBuilder(this.context);
+
+  @override
+  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    if (element.tag != 'pre') return null;
+
+    // Fenced code blocks are usually <pre><code class="language-xyz">...</code></pre>
+    if (element.children != null &&
+        element.children!.isNotEmpty &&
+        element.children!.first is md.Element &&
+        (element.children!.first as md.Element).tag == 'code') {
+      final codeElement = element.children!.first as md.Element;
+      final languageClass = codeElement.attributes['class'] ?? '';
+
+      // Extract language name (e.g. language-python -> python)
+      String language = '';
+      if (languageClass.startsWith('language-')) {
+        language = languageClass.substring(9);
+      } else {
+        language = languageClass; // fallback
+      }
+
+      if (language.isEmpty) language = 'code';
+
+      // Extract raw code text
+      final textContent = codeElement.textContent;
+
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: SpedaColors.surface, // Container bg
+          border: Border.all(color: SpedaColors.borderSubtle),
+        ),
+        clipBehavior: Clip.hardEdge,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Header
-            Padding(
-              padding: const EdgeInsets.all(20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              color: const Color(0xFF2D2E30), // Slightly darker header
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(
-                    Icons.history_rounded,
-                    color: SpedaColors.textSecondary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
                   Text(
-                    'History',
-                    style: SpedaTypography.title.copyWith(
-                      color: SpedaColors.textPrimary,
+                    language.toUpperCase(),
+                    style: const TextStyle(
+                      color: SpedaColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: textContent));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Code copied!'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    child: const Icon(
+                      Icons.content_copy_rounded,
+                      size: 16,
+                      color: SpedaColors.textSecondary,
                     ),
                   ),
                 ],
               ),
             ),
-            SpedaWidgets.divider(),
 
-            // Conversation list
-            Expanded(
-              child: _ConversationHistoryList(
-                onConversationSelected: (conversationId) {
-                  Navigator.pop(context);
-                  context.read<ChatProvider>().loadConversation(conversationId);
-                },
-              ),
-            ),
-
-            SpedaWidgets.divider(),
-
-            // New conversation button
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: TextButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    context.read<ChatProvider>().clearConversation();
-                  },
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('New Conversation'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: SpedaColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
+            // Code Content
+            Container(
+              padding: const EdgeInsets.all(12),
+              color: const Color(0xFF1E1F20), // Dark code bg
+              width: double.infinity,
+              child: SelectableText(
+                textContent,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  color: SpedaColors.textPrimary,
+                  height: 1.4,
                 ),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Conversation history list widget
-class _ConversationHistoryList extends StatefulWidget {
-  final Function(int conversationId) onConversationSelected;
-
-  const _ConversationHistoryList({required this.onConversationSelected});
-
-  @override
-  State<_ConversationHistoryList> createState() =>
-      _ConversationHistoryListState();
-}
-
-class _ConversationHistoryListState extends State<_ConversationHistoryList> {
-  List<ConversationPreview>? _conversations;
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadConversations();
-  }
-
-  Future<void> _loadConversations() async {
-    try {
-      final apiService = context.read<ApiService>();
-      final conversations = await apiService.getConversations();
-      if (mounted) {
-        setState(() {
-          _conversations = conversations;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          color: SpedaColors.primary,
-          strokeWidth: 2,
-        ),
       );
     }
-
-    if (_conversations == null || _conversations!.isEmpty) {
-      return Center(
-        child: Text(
-          'No conversations yet',
-          style: SpedaTypography.bodySmall.copyWith(
-            color: SpedaColors.textTertiary,
-          ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: _conversations!.length,
-      itemBuilder: (context, index) {
-        final conv = _conversations![index];
-        return ListTile(
-          onTap: () => widget.onConversationSelected(conv.id),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-          title: Text(
-            conv.title ?? 'Untitled',
-            style: SpedaTypography.body.copyWith(
-              color: SpedaColors.textPrimary,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Text(
-            conv.preview ?? '',
-            style: SpedaTypography.caption,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: const Icon(
-            Icons.chevron_right_rounded,
-            color: SpedaColors.textTertiary,
-            size: 20,
-          ),
-        );
-      },
-    );
+    return null;
   }
 }

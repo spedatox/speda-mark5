@@ -82,6 +82,7 @@ class ChatProvider extends ChangeNotifier {
 
   List<ChatMessage> _messages = [];
   int? _conversationId;
+  int? get currentConversationId => _conversationId; // Exposed for drawer
   String? _conversationTitle;
   bool _isLoading = false;
   String? _error;

@@ -22,12 +22,16 @@ class WeatherService:
     async def get_current_weather(
         self,
         city: Optional[str] = None,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
         units: str = "metric",
     ) -> Optional[dict]:
-        """Get current weather for a city.
+        """Get current weather for a location.
         
         Args:
             city: City name (e.g., "Istanbul,TR")
+            latitude: GPS latitude (preferred if provided with longitude)
+            longitude: GPS longitude (preferred if provided with latitude)
             units: Temperature units (metric, imperial, kelvin)
             
         Returns:
@@ -35,17 +39,27 @@ class WeatherService:
         """
         if not self.api_key:
             return None
-            
-        city = city or self.default_city
         
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.BASE_URL}/weather",
-                params={
+            # Use lat/lon if provided, otherwise use city name
+            if latitude is not None and longitude is not None:
+                params = {
+                    "lat": latitude,
+                    "lon": longitude,
+                    "appid": self.api_key,
+                    "units": units,
+                }
+            else:
+                city = city or self.default_city
+                params = {
                     "q": city,
                     "appid": self.api_key,
                     "units": units,
-                },
+                }
+            
+            response = await client.get(
+                f"{self.BASE_URL}/weather",
+                params=params,
             )
             
             if response.status_code != 200:

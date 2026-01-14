@@ -44,6 +44,16 @@ class _MinimalTasksScreenState extends State<MinimalTasksScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
+          // Menu button
+          GestureDetector(
+            onTap: () => Scaffold.of(context).openDrawer(),
+            child: const Icon(
+              Icons.menu_rounded,
+              size: 26,
+              color: SpedaColors.textSecondary,
+            ),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

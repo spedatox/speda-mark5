@@ -47,8 +47,10 @@ class BriefingService:
     async def generate_briefing(
         self,
         timezone: str = "Europe/Istanbul",
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
     ) -> BriefingResponse:
-        """Generate the daily briefing."""
+        """Generate the daily briefing with optional location for weather."""
         now = datetime.utcnow()
 
         # Check if Google is authenticated
@@ -100,8 +102,8 @@ class BriefingService:
         # Generate greeting based on time
         greeting = self._generate_greeting(now, timezone)
 
-        # Get weather (mocked for now)
-        weather = await self._get_weather()
+        # Get weather for user's location (if provided)
+        weather = await self._get_weather(latitude=latitude, longitude=longitude)
 
         # Get news (mocked for now)
         news = await self._get_news()
@@ -261,13 +263,21 @@ class BriefingService:
 
         return f"{time_greeting}! Here's your briefing for today."
 
-    async def _get_weather(self) -> Optional[WeatherInfo]:
-        """Get weather information from OpenWeatherMap API."""
+    async def _get_weather(
+        self,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
+    ) -> Optional[WeatherInfo]:
+        """Get weather information from OpenWeatherMap API using user's location."""
         from app.services.weather import WeatherService
         
         try:
             weather_service = WeatherService()
-            weather_data = await weather_service.get_current_weather()
+            # Use coordinates if available, otherwise fallback to default city
+            weather_data = await weather_service.get_current_weather(
+                latitude=latitude,
+                longitude=longitude,
+            )
             
             if weather_data:
                 # Get forecast for high/low temps
@@ -310,9 +320,15 @@ class BriefingService:
     async def generate_text_briefing(
         self,
         timezone: str = "Europe/Istanbul",
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
     ) -> str:
         """Generate a text-formatted briefing for chat responses."""
-        briefing = await self.generate_briefing(timezone)
+        briefing = await self.generate_briefing(
+            timezone=timezone,
+            latitude=latitude,
+            longitude=longitude,
+        )
 
         lines = [briefing.greeting, ""]
 
