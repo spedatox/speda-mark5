@@ -473,6 +473,13 @@ Respond in JSON format only."""
         }
         
         response = await self.http_client.post("/responses", json=payload)
+        
+        # Log error body for debugging 400 errors
+        if response.status_code >= 400:
+            error_body = response.text
+            print(f"[LLM][extract_intent] ERROR {response.status_code}: {error_body}")
+            print(f"[LLM][extract_intent] Request payload: {json.dumps(payload, indent=2)}")
+        
         response.raise_for_status()
         data = response.json()
         

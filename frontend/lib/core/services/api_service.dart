@@ -373,25 +373,66 @@ class ApiService {
   // ==================== Voice ====================
 
   /// Send a voice message (for voice mode)
-  /// Returns just the text response (no streaming)
+  /// Uses the streaming endpoint and collects the full response
   Future<String> sendVoiceMessage(String message) async {
-    final response = await _client.post(
-      Uri.parse('$baseUrl/chat'),
-      headers: _headers,
-      body: jsonEncode({
+    // Create a dedicated client for this streaming request
+    final streamClient = http.Client();
+
+    try {
+      final request = http.Request(
+        'POST',
+        Uri.parse('$baseUrl/chat/stream'),
+      );
+      request.headers.addAll({
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+        'Accept': 'text/event-stream',
+      });
+      request.body = jsonEncode({
         'message': message,
         'timezone': 'Europe/Istanbul',
-      }),
-    );
+      });
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['reply'] ?? '';
-    } else {
+      final streamedResponse = await streamClient.send(request);
+
+      if (streamedResponse.statusCode != 200) {
+        throw ApiException(
+          statusCode: streamedResponse.statusCode,
+          message: 'Failed to send voice message',
+        );
+      }
+
+      // Collect all chunks from the stream
+      final StringBuffer fullResponse = StringBuffer();
+
+      await for (final chunk
+          in streamedResponse.stream.transform(utf8.decoder)) {
+        // Parse SSE events
+        for (final line in chunk.split('\n')) {
+          if (line.startsWith('data: ')) {
+            final dataStr = line.substring(6);
+            if (dataStr == '[DONE]') continue;
+            try {
+              final data = jsonDecode(dataStr);
+              if (data['type'] == 'chunk' && data['content'] != null) {
+                fullResponse.write(data['content']);
+              }
+            } catch (_) {
+              // Skip malformed JSON
+            }
+          }
+        }
+      }
+
+      return fullResponse.toString();
+    } catch (e) {
+      if (e is ApiException) rethrow;
       throw ApiException(
-        statusCode: response.statusCode,
-        message: 'Failed to send voice message',
+        statusCode: 500,
+        message: 'Failed to send voice message: $e',
       );
+    } finally {
+      streamClient.close();
     }
   }
 

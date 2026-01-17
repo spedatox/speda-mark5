@@ -210,10 +210,24 @@ class _MinimalVoiceScreenState extends State<MinimalVoiceScreen>
 
   Future<void> _playTTSResponse(String text) async {
     try {
-      final audioUrl = await _apiService.getTTSAudio(text);
-      await _audioPlayer.setUrl(audioUrl);
+      debugPrint(
+          '[VoiceMode] Streaming TTS for: ${text.substring(0, text.length > 30 ? 30 : text.length)}...');
+
+      // Construct the streaming URL - audio plays as bytes arrive
+      final encodedText = Uri.encodeQueryComponent(text);
+      final streamUrl =
+          '${_apiService.baseUrl}/api/voice/stream?text=$encodedText&voice=marin';
+
+      debugPrint('[VoiceMode] Stream URL: $streamUrl');
+
+      // Play immediately - player buffers and plays as first bytes arrive
+      await _audioPlayer.setUrl(streamUrl);
       await _audioPlayer.play();
+
+      debugPrint('[VoiceMode] Streaming OpenAI TTS audio');
     } catch (e) {
+      debugPrint(
+          '[VoiceMode] Streaming TTS failed, falling back to device TTS. Error: $e');
       await _flutterTts.speak(text);
     }
   }
@@ -295,21 +309,51 @@ class _MinimalVoiceScreenState extends State<MinimalVoiceScreen>
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          Text(
-            'Voice',
-            style: SpedaTypography.heading.copyWith(
-              fontSize: 24,
-              letterSpacing: -0.5,
+          // SPEDA Logo (opens drawer)
+          GestureDetector(
+            onTap: () => Scaffold.of(context).openDrawer(),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: SpedaColors.surface,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  'assets/images/speda_ui_logo.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 12),
+          // Title
+          Expanded(
+            child: Text(
+              'voIce mode',
+              style: TextStyle(
+                fontFamily: 'Logirent',
+                fontSize: 26,
+                color: SpedaColors.textPrimary,
+              ),
+            ),
+          ),
+          // Status indicator
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: _state != VoiceState.idle
-                  ? SpedaColors.success.withAlpha(25)
-                  : SpedaColors.surfaceLight,
-              borderRadius: BorderRadius.circular(20),
+                  ? SpedaColors.primary.withOpacity(0.12)
+                  : const Color(0xFF2A2A3A),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: _state != VoiceState.idle
+                    ? SpedaColors.primary.withOpacity(0.3)
+                    : const Color(0xFF4A4A5A),
+                width: 1,
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -318,16 +362,19 @@ class _MinimalVoiceScreenState extends State<MinimalVoiceScreen>
                   Icons.circle,
                   size: 8,
                   color: _state != VoiceState.idle
-                      ? SpedaColors.success
-                      : SpedaColors.textTertiary,
+                      ? SpedaColors.primary
+                      : const Color(0xFF6A6A7A),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _state != VoiceState.idle ? 'Active' : 'Ready',
-                  style: SpedaTypography.label.copyWith(
+                  _state != VoiceState.idle ? 'ACTIVE' : 'STANDBY',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1,
                     color: _state != VoiceState.idle
-                        ? SpedaColors.success
-                        : SpedaColors.textTertiary,
+                        ? SpedaColors.primary
+                        : const Color(0xFF6A6A7A),
                   ),
                 ),
               ],
@@ -341,65 +388,140 @@ class _MinimalVoiceScreenState extends State<MinimalVoiceScreen>
   Widget _buildVoiceOrb() {
     final isActive = _state != VoiceState.idle;
     final isListening = _state == VoiceState.listening;
+    final isProcessing = _state == VoiceState.processing;
+    final isSpeaking = _state == VoiceState.speaking;
+
+    // Colors based on state
+    final primaryColor = isListening || isProcessing || isSpeaking
+        ? SpedaColors.primary
+        : const Color(0xFF2A2A3A);
+    final glowOpacity = isActive ? 0.6 : 0.0;
+
+    // Label text
+    String labelText = 'TAP TO START';
+    if (isListening) labelText = 'LISTENING';
+    if (isProcessing) labelText = 'THINKING';
+    if (isSpeaking) labelText = 'SPEAKING';
 
     return GestureDetector(
       onTap: _handleTap,
       child: AnimatedBuilder(
         animation: _pulseController,
         builder: (context, child) {
-          final scale = isActive ? 1.0 + (_pulseController.value * 0.1) : 1.0;
-          return Transform.scale(
-            scale: scale,
-            child: Container(
-              width: 160 + (_soundLevel.clamp(0, 10) * 4),
-              height: 160 + (_soundLevel.clamp(0, 10) * 4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    isListening
-                        ? SpedaColors.primary.withAlpha(200)
-                        : _state == VoiceState.processing
-                            ? SpedaColors.warning.withAlpha(150)
-                            : _state == VoiceState.speaking
-                                ? SpedaColors.success.withAlpha(150)
-                                : SpedaColors.surface,
-                    isListening
-                        ? SpedaColors.primary.withAlpha(100)
-                        : _state == VoiceState.processing
-                            ? SpedaColors.warning.withAlpha(75)
-                            : _state == VoiceState.speaking
-                                ? SpedaColors.success.withAlpha(75)
-                                : SpedaColors.surfaceLight,
-                  ],
+          final pulseValue = _pulseController.value;
+          final soundScale = _soundLevel.clamp(0, 10) / 10;
+
+          return SizedBox(
+            width: 280,
+            height: 280,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Outer glow ring (animated)
+                if (isActive)
+                  Container(
+                    width: 260 + (pulseValue * 20) + (soundScale * 30),
+                    height: 260 + (pulseValue * 20) + (soundScale * 30),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color:
+                            primaryColor.withOpacity(0.2 + (pulseValue * 0.1)),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+
+                // Second ring
+                if (isActive)
+                  Container(
+                    width: 230 + (pulseValue * 10) + (soundScale * 20),
+                    height: 230 + (pulseValue * 10) + (soundScale * 20),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color:
+                            primaryColor.withOpacity(0.3 + (pulseValue * 0.15)),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+
+                // Third ring (main outer)
+                Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isActive
+                          ? primaryColor.withOpacity(0.5)
+                          : const Color(0xFF3A3A4A),
+                      width: 2,
+                    ),
+                    boxShadow: isActive
+                        ? [
+                            BoxShadow(
+                              color: primaryColor.withOpacity(glowOpacity),
+                              blurRadius: 40,
+                              spreadRadius: 5,
+                            ),
+                          ]
+                        : null,
+                  ),
                 ),
-                border: Border.all(
-                  color: isActive ? SpedaColors.primary : SpedaColors.border,
-                  width: 2,
-                ),
-                boxShadow: isActive
-                    ? [
-                        BoxShadow(
-                          color: SpedaColors.primary.withAlpha(50),
-                          blurRadius: 30,
-                          spreadRadius: 5,
+
+                // Inner circle with SPEDA logo
+                Container(
+                  width: 160,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF1A1A24),
+                    border: Border.all(
+                      color: isActive
+                          ? primaryColor.withOpacity(0.7)
+                          : const Color(0xFF3A3A4A),
+                      width: 2,
+                    ),
+                    boxShadow: isActive
+                        ? [
+                            BoxShadow(
+                              color: primaryColor.withOpacity(0.3),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // SPEDA Logo
+                      Image.asset(
+                        'assets/images/speda_ui_logo.png',
+                        width: 60,
+                        height: 60,
+                        color:
+                            isActive ? primaryColor : const Color(0xFF5A5A6A),
+                        colorBlendMode: BlendMode.srcIn,
+                      ),
+                      const SizedBox(height: 8),
+                      // State label
+                      Text(
+                        labelText,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 2,
+                          color:
+                              isActive ? primaryColor : const Color(0xFF5A5A6A),
                         ),
-                      ]
-                    : null,
-              ),
-              child: Center(
-                child: Icon(
-                  isListening
-                      ? Icons.mic_rounded
-                      : _state == VoiceState.processing
-                          ? Icons.psychology_rounded
-                          : _state == VoiceState.speaking
-                              ? Icons.volume_up_rounded
-                              : Icons.mic_none_rounded,
-                  size: 64,
-                  color: isActive ? Colors.white : SpedaColors.textSecondary,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           );
         },
