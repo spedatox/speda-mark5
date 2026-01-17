@@ -44,37 +44,61 @@ class _MinimalTasksScreenState extends State<MinimalTasksScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          // Menu button
+          // SPEDA Logo (opens drawer)
           GestureDetector(
             onTap: () => Scaffold.of(context).openDrawer(),
-            child: const Icon(
-              Icons.menu_rounded,
-              size: 26,
-              color: SpedaColors.textSecondary,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: SpedaColors.surface,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  'assets/images/speda_ui_logo.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
+          // Title
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Tasks',
-                  style: SpedaTypography.heading.copyWith(
-                    fontSize: 24,
-                    letterSpacing: -0.5,
+                  'tasks',
+                  style: TextStyle(
+                    fontFamily: 'Logirent',
+                    fontSize: 26,
+                    color: SpedaColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Consumer<TaskProvider>(
                   builder: (context, provider, _) {
                     final pending = provider.pendingCount;
-                    return Text(
-                      pending > 0
-                          ? '$pending task${pending > 1 ? 's' : ''} remaining'
-                          : 'All caught up',
-                      style: SpedaTypography.bodySmall.copyWith(
-                        color: SpedaColors.textTertiary,
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: pending > 0
+                            ? SpedaColors.primary.withOpacity(0.15)
+                            : SpedaColors.success.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        pending > 0 ? '$pending pending' : 'All done',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: pending > 0
+                              ? SpedaColors.primary
+                              : SpedaColors.success,
+                        ),
                       ),
                     );
                   },
@@ -88,13 +112,13 @@ class _MinimalTasksScreenState extends State<MinimalTasksScreen> {
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: SpedaColors.surfaceLight,
-                borderRadius: BorderRadius.circular(12),
+                color: SpedaColors.surface,
+                borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
                 Icons.refresh_rounded,
                 size: 20,
-                color: SpedaColors.textSecondary,
+                color: SpedaColors.primary,
               ),
             ),
           ),
@@ -205,14 +229,21 @@ class _MinimalTasksScreenState extends State<MinimalTasksScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: SpedaColors.surface,
-        borderRadius: BorderRadius.circular(SpedaRadius.lg),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1A1A24),
+            Color(0xFF121218),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isCompleted
-              ? SpedaColors.success.withAlpha(50)
+              ? SpedaColors.success.withOpacity(0.4)
               : isOverdue
-                  ? SpedaColors.error.withAlpha(50)
-                  : SpedaColors.border,
+                  ? SpedaColors.error.withOpacity(0.4)
+                  : SpedaColors.primary.withOpacity(0.3),
           width: 1,
         ),
       ),

@@ -1,43 +1,48 @@
 import 'package:flutter/material.dart';
 
-/// Ultra-minimal 2026 design system for Speda
-/// Philosophy: Apple-level simplicity with subtle tech hints
+/// SPEDA Design System — JARVIS-inspired, premium, modern
+/// Philosophy: Intelligence feels alive, not flashy
 
 class SpedaColors {
   SpedaColors._();
 
-  // Core backgrounds - Gemini-style deep blacks
-  static const Color background = Color(0xFF131314);
-  static const Color surface = Color(0xFF1E1F20);
-  static const Color surfaceLight = Color(0xFF282A2C);
-  static const Color surfaceElevated = Color(0xFF303134);
+  // Core backgrounds - Deep, sophisticated
+  static const Color background = Color(0xFF0A0A0F);
+  static const Color surface = Color(0xFF12131A);
+  static const Color surfaceLight = Color(0xFF1A1B24);
+  static const Color surfaceElevated = Color(0xFF22242E);
 
-  // Primary accent - Gemini soft blue
-  static const Color primary = Color(0xFF8AB4F8);
-  static const Color primaryMuted = Color(0xFF669DF6);
-  static const Color primarySubtle = Color(0xFF1A3A5C);
+  // JARVIS accent - Cyan/blue with life
+  static const Color primary = Color(0xFF00D4FF); // Vibrant cyan
+  static const Color primaryMuted = Color(0xFF00A8CC); // Softer cyan
+  static const Color primarySubtle = Color(0xFF0A2A35); // Very subtle bg tint
+
+  // JARVIS special colors
+  static const Color jarvisGlow = Color(0xFF00D4FF); // For subtle glows
+  static const Color jarvisCyan = Color(0xFF00E5FF); // Bright accents
+  static const Color jarvisBlue = Color(0xFF4FC3F7); // Softer blue
 
   // Semantic colors
-  static const Color success = Color(0xFF81C995);
-  static const Color warning = Color(0xFFFDD663);
-  static const Color error = Color(0xFFF28B82);
+  static const Color success = Color(0xFF00E676);
+  static const Color warning = Color(0xFFFFD740);
+  static const Color error = Color(0xFFFF5252);
 
   // Text hierarchy
-  static const Color textPrimary = Color(0xFFE8EAED);
-  static const Color textSecondary = Color(0xFF9AA0A6);
-  static const Color textTertiary = Color(0xFF5F6368);
+  static const Color textPrimary = Color(0xFFE8ECF0);
+  static const Color textSecondary = Color(0xFF8A9AAC);
+  static const Color textTertiary = Color(0xFF4A5568);
 
   // Borders & dividers
-  static const Color border = Color(0xFF3C4043);
-  static const Color borderSubtle = Color(0xFF28292A);
+  static const Color border = Color(0xFF2A3040);
+  static const Color borderSubtle = Color(0xFF1A1F2E);
 
-  // Message colors (Gemini-style)
-  static const Color userBubble = Color(0xFF3C4043);
-  static const Color userAccent = Color(0xFF8AB4F8);
+  // Message colors
+  static const Color userBubble = Color(0xFF1E3A5F); // Darker blue for user
+  static const Color userAccent = Color(0xFF00D4FF);
 
   // Input bar
-  static const Color inputBackground = Color(0xFF1E1F20);
-  static const Color inputBorder = Color(0xFF3C4043);
+  static const Color inputBackground = Color(0xFF12131A);
+  static const Color inputBorder = Color(0xFF2A3040);
 }
 
 /// Minimal design tokens
@@ -66,10 +71,10 @@ class SpedaRadius {
 class SpedaTypography {
   SpedaTypography._();
 
-  static const String fontFamily = 'Inter';
+  // static const String fontFamily = 'Inter';
 
   static const TextStyle displayLarge = TextStyle(
-    fontFamily: fontFamily,
+    // fontFamily: fontFamily,
     fontSize: 34,
     fontWeight: FontWeight.w600,
     letterSpacing: -0.5,
@@ -77,7 +82,7 @@ class SpedaTypography {
   );
 
   static const TextStyle heading = TextStyle(
-    fontFamily: fontFamily,
+    // fontFamily: fontFamily,
     fontSize: 20,
     fontWeight: FontWeight.w600,
     letterSpacing: -0.3,
@@ -85,7 +90,7 @@ class SpedaTypography {
   );
 
   static const TextStyle title = TextStyle(
-    fontFamily: fontFamily,
+    // fontFamily: fontFamily,
     fontSize: 17,
     fontWeight: FontWeight.w600,
     letterSpacing: -0.2,
@@ -93,7 +98,7 @@ class SpedaTypography {
   );
 
   static const TextStyle body = TextStyle(
-    fontFamily: fontFamily,
+    // fontFamily: fontFamily,
     fontSize: 15,
     fontWeight: FontWeight.w400,
     height: 1.5,
@@ -101,14 +106,14 @@ class SpedaTypography {
   );
 
   static const TextStyle bodySmall = TextStyle(
-    fontFamily: fontFamily,
+    // fontFamily: fontFamily,
     fontSize: 13,
     fontWeight: FontWeight.w400,
     color: SpedaColors.textSecondary,
   );
 
   static const TextStyle caption = TextStyle(
-    fontFamily: fontFamily,
+    // fontFamily: fontFamily,
     fontSize: 12,
     fontWeight: FontWeight.w500,
     letterSpacing: 0.5,
@@ -116,7 +121,7 @@ class SpedaTypography {
   );
 
   static const TextStyle label = TextStyle(
-    fontFamily: fontFamily,
+    // fontFamily: fontFamily,
     fontSize: 13,
     fontWeight: FontWeight.w500,
     letterSpacing: 0.3,
@@ -132,7 +137,7 @@ class SpedaTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      fontFamily: SpedaTypography.fontFamily,
+      // fontFamily: SpedaTypography.fontFamily,
 
       // Colors
       colorScheme: const ColorScheme.dark(

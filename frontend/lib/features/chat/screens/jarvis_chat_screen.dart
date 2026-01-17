@@ -113,11 +113,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 bottom: BorderSide(color: JarvisColors.panelBorder),
               ),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.history,
+                Icon(Icons.history,
                     color: JarvisColors.primary, size: 20),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Text(
                   'CONVERSATION HISTORY',
                   style: TextStyle(
@@ -424,7 +424,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         const SizedBox(width: 8),
                         Text(
                           message.processingStatus!,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'Inter',
                             color: JarvisColors.textMuted,
                             fontSize: 12,
@@ -443,7 +443,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: message.isUser
                             ? Text(
                                 message.content,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontFamily: 'Inter',
                                   color: JarvisColors.primary,
                                   fontSize: 13,
@@ -532,42 +532,42 @@ class _ChatScreenState extends State<ChatScreen> {
       data: content,
       selectable: true,
       styleSheet: MarkdownStyleSheet(
-        p: TextStyle(
+        p: const TextStyle(
           fontFamily: 'Inter',
           color: JarvisColors.textPrimary,
           fontSize: 13,
           fontWeight: FontWeight.w300,
           height: 1.5,
         ),
-        h1: TextStyle(
+        h1: const TextStyle(
           fontFamily: 'Inter',
           color: JarvisColors.primary,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
-        h2: TextStyle(
+        h2: const TextStyle(
           fontFamily: 'Inter',
           color: JarvisColors.primary,
           fontSize: 16,
           fontWeight: FontWeight.w600,
         ),
-        h3: TextStyle(
+        h3: const TextStyle(
           fontFamily: 'Inter',
           color: JarvisColors.primary,
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
-        strong: TextStyle(
+        strong: const TextStyle(
           fontFamily: 'Inter',
           color: JarvisColors.textPrimary,
           fontWeight: FontWeight.w600,
         ),
-        em: TextStyle(
+        em: const TextStyle(
           fontFamily: 'Inter',
           color: JarvisColors.textPrimary,
           fontStyle: FontStyle.italic,
         ),
-        code: TextStyle(
+        code: const TextStyle(
           color: JarvisColors.accent,
           backgroundColor: JarvisColors.background,
           fontFamily: 'monospace',
@@ -579,14 +579,14 @@ class _ChatScreenState extends State<ChatScreen> {
           border: Border.all(color: JarvisColors.panelBorder),
         ),
         codeblockPadding: const EdgeInsets.all(12),
-        blockquoteDecoration: BoxDecoration(
+        blockquoteDecoration: const BoxDecoration(
           border: Border(
             left: BorderSide(color: JarvisColors.primary, width: 3),
           ),
         ),
         blockquotePadding: const EdgeInsets.only(left: 12),
-        listBullet: TextStyle(color: JarvisColors.primary),
-        a: TextStyle(
+        listBullet: const TextStyle(color: JarvisColors.primary),
+        a: const TextStyle(
           color: JarvisColors.accent,
           decoration: TextDecoration.underline,
         ),
@@ -1001,7 +1001,7 @@ class _ConversationHistoryListState extends State<_ConversationHistoryList> {
           children: [
             Icon(Icons.error_outline, color: Colors.red.shade400, size: 32),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Failed to load history',
               style: TextStyle(color: JarvisColors.textMuted, fontSize: 12),
             ),
@@ -1022,7 +1022,7 @@ class _ConversationHistoryListState extends State<_ConversationHistoryList> {
             Icon(Icons.chat_bubble_outline,
                 color: JarvisColors.textMuted.withOpacity(0.5), size: 48),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No conversations yet',
               style: TextStyle(color: JarvisColors.textMuted, fontSize: 12),
             ),
@@ -1101,7 +1101,7 @@ class _ConversationTile extends StatelessWidget {
                     conversation.preview,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Inter',
                       color: JarvisColors.textMuted,
                       fontSize: 11,
@@ -1113,7 +1113,7 @@ class _ConversationTile extends StatelessWidget {
                     children: [
                       Text(
                         timeAgo,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontFamily: 'Inter',
                           color: JarvisColors.textMuted,
                           fontSize: 10,
@@ -1123,7 +1123,7 @@ class _ConversationTile extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         '${conversation.messageCount} messages',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontFamily: 'Inter',
                           color: JarvisColors.textMuted,
                           fontSize: 10,
@@ -1529,7 +1529,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                             ),
                             if (isSelected) ...[
                               const SizedBox(width: 8),
-                              Icon(
+                              const Icon(
                                 Icons.check_circle,
                                 size: 16,
                                 color: JarvisColors.primary,
@@ -1571,9 +1571,9 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                             : _llmSettings?.availableModels.first,
                         isExpanded: true,
                         dropdownColor: JarvisColors.surface,
-                        icon: Icon(Icons.keyboard_arrow_down,
+                        icon: const Icon(Icons.keyboard_arrow_down,
                             color: JarvisColors.primary),
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: JarvisColors.textPrimary, fontSize: 13),
                         items:
                             (_llmSettings?.availableModels ?? []).map((model) {
@@ -1615,10 +1615,10 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.memory,
+                      const Icon(Icons.memory,
                           size: 16, color: JarvisColors.textMuted),
                       const SizedBox(width: 8),
-                      Text(
+                      const Text(
                         'Active: ',
                         style: TextStyle(
                           color: JarvisColors.textMuted,
@@ -1627,7 +1627,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                       ),
                       Text(
                         _llmSettings?.model ?? 'Default',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: JarvisColors.primary,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -1697,7 +1697,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
               const SizedBox(height: 8),
               Text(
                 'Current: ${AppConfig.apiBaseUrl}',
-                style: TextStyle(
+                style: const TextStyle(
                   color: JarvisColors.textMuted,
                   fontSize: 10,
                 ),
@@ -1787,7 +1787,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
             ),
             if (isSelected) ...[
               const SizedBox(width: 8),
-              Icon(
+              const Icon(
                 Icons.check_circle,
                 size: 16,
                 color: JarvisColors.primary,
@@ -1949,9 +1949,9 @@ class _CodeBlockWidget extends StatelessWidget {
           // Header with language and copy button
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: JarvisColors.surface,
-              borderRadius: const BorderRadius.only(
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(5),
                 topRight: Radius.circular(5),
               ),
@@ -1964,7 +1964,7 @@ class _CodeBlockWidget extends StatelessWidget {
               children: [
                 Text(
                   language?.toUpperCase() ?? 'CODE',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: JarvisColors.primary,
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -1975,18 +1975,18 @@ class _CodeBlockWidget extends StatelessWidget {
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: code));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Code copied to clipboard'),
+                      const SnackBar(
+                        content: Text('Code copied to clipboard'),
                         backgroundColor: JarvisColors.surface,
-                        duration: const Duration(seconds: 2),
+                        duration: Duration(seconds: 2),
                       ),
                     );
                   },
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.copy, size: 12, color: JarvisColors.textMuted),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Text(
                         'COPY',
                         style: TextStyle(
@@ -2007,7 +2007,7 @@ class _CodeBlockWidget extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: SelectableText(
               code.trim(),
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 12,
                 color: JarvisColors.textPrimary,

@@ -69,13 +69,13 @@ class _BriefingScreenState extends State<BriefingScreen> {
   }
 
   Widget _buildLoadingState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const ArcLoader(size: 80),
-          const SizedBox(height: 24),
-          const Text(
+          ArcLoader(size: 80),
+          SizedBox(height: 24),
+          Text(
             'LOADING BRIEFING',
             style: TextStyle(
               color: JarvisColors.primary,
@@ -83,7 +83,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
               letterSpacing: 3,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Gathering intelligence...',
             style: TextStyle(
@@ -112,10 +112,10 @@ class _BriefingScreenState extends State<BriefingScreen> {
             color: JarvisColors.primary,
             margin: const EdgeInsets.only(right: 12),
           ),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'DAILY BRIEFING',
                   style: TextStyle(
@@ -383,7 +383,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
                   ),
                   child: Row(
                     children: [
-                      Container(
+                      SizedBox(
                         width: 50,
                         child: Text(
                           '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime.minute.toString().padLeft(2, '0')}',

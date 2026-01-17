@@ -28,7 +28,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      colorScheme: ColorScheme.light(
+      colorScheme: const ColorScheme.light(
         primary: _primaryColor,
         secondary: _secondaryColor,
         tertiary: _accentColor,
@@ -96,7 +96,7 @@ class AppTheme {
         color: Colors.grey.shade200,
         thickness: 1,
       ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: _lightSurface,
         selectedItemColor: _primaryColor,
         unselectedItemColor: _lightTextSecondary,
@@ -111,7 +111,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      colorScheme: ColorScheme.dark(
+      colorScheme: const ColorScheme.dark(
         primary: _primaryColor,
         secondary: _secondaryColor,
         tertiary: _accentColor,
@@ -179,7 +179,7 @@ class AppTheme {
         color: Colors.grey.shade800,
         thickness: 1,
       ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: _darkSurface,
         selectedItemColor: _primaryColor,
         unselectedItemColor: _darkTextSecondary,

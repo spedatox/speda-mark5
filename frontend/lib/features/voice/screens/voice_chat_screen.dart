@@ -38,7 +38,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
   String _responseText = '';
   bool _isAvailable = false;
   double _soundLevel = 0.0;
-  bool _useDeviceTts = false; // Use server TTS with OpenAI
+  final bool _useDeviceTts = false; // Use server TTS with OpenAI
 
   late AnimationController _pulseController;
   late AnimationController _waveController;
@@ -414,7 +414,7 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: JarvisColors.primary.withOpacity(0.5)),
             ),
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
@@ -422,8 +422,8 @@ class _VoiceChatScreenState extends State<VoiceChatScreen>
                   size: 16,
                   color: JarvisColors.primary,
                 ),
-                const SizedBox(width: 6),
-                const Text(
+                SizedBox(width: 6),
+                Text(
                   'VOICE',
                   style: TextStyle(
                     color: JarvisColors.primary,

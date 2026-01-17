@@ -243,23 +243,14 @@ class BriefingService:
 
         if hour < 6:
             time_greeting = "Good night"
-            turkish_greeting = "İyi geceler"
         elif hour < 12:
             time_greeting = "Good morning"
-            turkish_greeting = "Günaydın"
         elif hour < 17:
             time_greeting = "Good afternoon"
-            turkish_greeting = "İyi öğlenler"
         elif hour < 21:
             time_greeting = "Good evening"
-            turkish_greeting = "İyi akşamlar"
         else:
             time_greeting = "Good evening"
-            turkish_greeting = "İyi akşamlar"
-
-        # Check if Turkish timezone
-        if "Istanbul" in timezone or "Turkey" in timezone:
-            return f"{turkish_greeting}! İşte bugünkü özetin."
 
         return f"{time_greeting}! Here's your briefing for today."
 

@@ -90,27 +90,34 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          // Menu button (opens drawer with history + other screens)
-          // Use Builder to get context under Scaffold if needed, but here we are in MainScaffold
-          // actually MinimalChatScreen is child of MainScaffold so Scaffold.of(context) gets MainScaffold
+          // SPEDA Logo (opens drawer) - replaces hamburger menu
           GestureDetector(
             onTap: () => Scaffold.of(context).openDrawer(),
-            child: const Icon(
-              Icons.menu_rounded,
-              color: SpedaColors.textSecondary,
-              size: 26,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: SpedaColors.surface,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/images/speda_ui_logo.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
           ),
 
-          // Centered title (Gemini style)
+          // Centered title (JARVIS style)
           Expanded(
             child: Center(
               child: Text(
-                'S.P.E.D.A.',
+                'speda',
                 style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
+                  fontFamily: 'Logirent',
+                  fontSize: 24, // Slightly smaller than drawer
                   color: SpedaColors.textPrimary,
                 ),
               ),
@@ -220,12 +227,55 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
       );
     }
 
-    // AI message - no bubble, with response header (Gemini style)
+    // AI message - with SPEDA avatar and enhanced styling
     return Padding(
       padding: const EdgeInsets.only(top: 16, bottom: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // SPEDA Response Header with Avatar
+          Row(
+            children: [
+              // SPEDA Avatar
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  color: SpedaColors.surface,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Image.asset(
+                    'assets/images/speda_ui_logo.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Name and timestamp
+              Text(
+                'SPEDA',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: SpedaColors.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _formatTime(message.timestamp),
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  color: SpedaColors.textTertiary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
           // Processing indicator (animated sparkle)
           if (showProcessing) ...[
             Row(
@@ -237,7 +287,7 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 14,
-                    color: SpedaColors.textSecondary,
+                    color: SpedaColors.primary,
                   ),
                 ),
               ],
@@ -245,57 +295,91 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
             const SizedBox(height: 12),
           ],
 
-          // AI response text (no bubble)
+          // AI response text
           _buildMarkdownContent(
             message.isStreaming ? '${message.content}▌' : message.content,
           ),
 
-          // Actions below text (Regenerate, Edit, etc) - Left aligned
+          // Enhanced Action Buttons
           if (!showProcessing &&
               !message.isStreaming &&
               message.content.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                // Regenerate
-                GestureDetector(
-                  onTap: () => _regenerateMessage(),
-                  child: const Icon(Icons.refresh_rounded,
-                      size: 18, color: SpedaColors.textSecondary),
-                ),
-                const SizedBox(width: 20),
-                // Edit
-                GestureDetector(
-                  onTap: () => _editMessage(message),
-                  child: const Icon(Icons.edit_outlined,
-                      size: 18, color: SpedaColors.textSecondary),
-                ),
-                const SizedBox(width: 20),
-                // Speaker
-                GestureDetector(
-                  onTap: () => _speakMessage(message.content),
-                  child: const Icon(Icons.volume_up_outlined,
-                      size: 18, color: SpedaColors.textSecondary),
-                ),
-                const SizedBox(width: 20),
-                // Copy (Adding for utility)
-                GestureDetector(
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: message.content));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Copied to clipboard'),
-                          duration: Duration(seconds: 1)),
-                    );
-                  },
-                  child: const Icon(Icons.copy_rounded,
-                      size: 16, color: SpedaColors.textSecondary),
-                ),
-              ],
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: SpedaColors.surface.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Regenerate
+                  _buildActionButton(
+                    Icons.refresh_rounded,
+                    'Regenerate',
+                    () => _regenerateMessage(),
+                  ),
+                  _buildActionDivider(),
+                  // Edit
+                  _buildActionButton(
+                    Icons.edit_outlined,
+                    'Edit',
+                    () => _editMessage(message),
+                  ),
+                  _buildActionDivider(),
+                  // Speak
+                  _buildActionButton(
+                    Icons.volume_up_outlined,
+                    'Speak',
+                    () => _speakMessage(message.content),
+                  ),
+                  _buildActionDivider(),
+                  // Copy
+                  _buildActionButton(
+                    Icons.copy_rounded,
+                    'Copy',
+                    () {
+                      Clipboard.setData(ClipboardData(text: message.content));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Copied to clipboard'),
+                            duration: Duration(seconds: 1)),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildActionButton(IconData icon, String tooltip, VoidCallback onTap) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Icon(
+            icon,
+            size: 18,
+            color: SpedaColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionDivider() {
+    return Container(
+      width: 1,
+      height: 16,
+      color: SpedaColors.borderSubtle,
     );
   }
 
@@ -564,82 +648,128 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
   }
 
   Widget _buildWelcomeScreen() {
+    // Time-based greeting
+    final hour = DateTime.now().hour;
+    String greeting;
+    if (hour < 12) {
+      greeting = 'Good morning';
+    } else if (hour < 17) {
+      greeting = 'Good afternoon';
+    } else {
+      greeting = 'Good evening';
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Speda Branding (Logo + Slogan)
-          Center(
-            child: Column(
-              children: [
-                // Logo
-                Image.asset(
-                  'assets/images/speda_ui_logo.png',
-                  height: 120, // Bigger logo
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 24),
-                // Full name slogan (One row)
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    'SPECIALIZED PERSONAL EXECUTIVE DIGITAL ASSISTANT',
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: SpedaColors.textSecondary,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ),
-              ],
+          // Personal Greeting (JARVIS-style)
+          Text(
+            '$greeting, Ahmet Erol.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 28,
+              fontWeight: FontWeight.w300,
+              color: SpedaColors.textPrimary,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'How can I assist you?',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              color: SpedaColors.textSecondary,
             ),
           ),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: 48),
 
-          // Suggestion chips (Gemini style - vertical stack)
-          _buildSuggestionChip(
-              '📋', 'Check my tasks', 'Show my tasks for today'),
+          // SPEDA Logo (subtle, not dominant)
+          Center(
+            child: Opacity(
+              opacity: 0.8,
+              child: Image.asset(
+                'assets/images/speda_ui_logo.png',
+                height: 100,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 48),
+
+          // Quick Actions Header
+          Text(
+            'QUICK ACTIONS',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: SpedaColors.textTertiary,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Suggestion chips with subtle JARVIS accent
+          _buildSuggestionChip(Icons.check_circle_outline, 'Check my tasks',
+              'Show my tasks for today'),
           const SizedBox(height: 12),
-          _buildSuggestionChip(
-              '📅', 'My schedule', 'What\'s on my calendar today?'),
+          _buildSuggestionChip(Icons.calendar_today_outlined, 'My schedule',
+              'What\'s on my calendar today?'),
           const SizedBox(height: 12),
-          _buildSuggestionChip(
-              '☀️', 'Daily briefing', 'Give me my morning briefing'),
+          _buildSuggestionChip(Icons.wb_sunny_outlined, 'Daily briefing',
+              'Give me my morning briefing'),
           const SizedBox(height: 12),
-          _buildSuggestionChip(
-              '✨', 'Start my day', 'Help me plan and prioritize today'),
+          _buildSuggestionChip(Icons.auto_awesome_outlined, 'Start my day',
+              'Help me plan and prioritize today'),
         ],
       ),
     );
   }
 
-  Widget _buildSuggestionChip(String emoji, String label, String message) {
+  Widget _buildSuggestionChip(IconData icon, String label, String message) {
     return GestureDetector(
       onTap: () => context.read<ChatProvider>().sendMessage(message),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: SpedaColors.surface,
-          borderRadius: BorderRadius.circular(50),
+          color: const Color(0xFF1A1B24), // Solid surface color
+          borderRadius: BorderRadius.circular(8),
+          border: Border(
+            left: BorderSide(
+              color: SpedaColors.primary,
+              width: 3,
+            ),
+          ),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 18)),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-                color: SpedaColors.textPrimary,
+            Icon(
+              icon,
+              size: 20,
+              color: SpedaColors.primary,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
               ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: Colors.white54,
             ),
           ],
         ),
@@ -651,12 +781,18 @@ class _MinimalChatScreenState extends State<MinimalChatScreen> {
     return Consumer<ChatProvider>(
       builder: (context, provider, child) {
         return Container(
-          // Native style: Rounded top corners, minimal top padding
+          // JARVIS-style: Sharper corners, thin top border line
           decoration: BoxDecoration(
-            color: SpedaColors.surface, // Match nav bar color
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            color: SpedaColors.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            border: Border(
+              top: BorderSide(
+                color: SpedaColors.primary.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
           ),
-          padding: const EdgeInsets.only(top: 12), // "Very few padding" on top
+          padding: const EdgeInsets.only(top: 12),
           child: SafeArea(
             top: false,
             child: Column(

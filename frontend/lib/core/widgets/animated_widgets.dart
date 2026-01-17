@@ -152,7 +152,7 @@ class ArcLoaderPainter extends CustomPainter {
     // Draw multiple arcs at different rotations
     for (int i = 0; i < 3; i++) {
       final rotation = progress * 2 * math.pi + (i * math.pi / 1.5);
-      final sweepAngle = math.pi / 3;
+      const sweepAngle = math.pi / 3;
 
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius - (i * 4)),
@@ -493,7 +493,7 @@ class HexagonPatternPainter extends CustomPainter {
       ..strokeWidth = 1;
 
     const hexSize = 40.0;
-    final hexWidth = hexSize * 2;
+    const hexWidth = hexSize * 2;
     final hexHeight = hexSize * math.sqrt(3);
 
     for (double y = -hexHeight;

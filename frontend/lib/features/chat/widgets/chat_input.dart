@@ -172,7 +172,7 @@ class _ChatInputState extends State<ChatInput> {
                             onTap: () => _removeImage(index),
                             child: Container(
                               padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: Colors.black54,
                                 shape: BoxShape.circle,
                               ),

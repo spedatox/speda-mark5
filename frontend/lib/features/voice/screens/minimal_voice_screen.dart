@@ -37,6 +37,7 @@ class _MinimalVoiceScreenState extends State<MinimalVoiceScreen>
   String _transcribedText = '';
   bool _isAvailable = false;
   double _soundLevel = 0.0;
+  String? _preferredLocale;
 
   late AnimationController _pulseController;
   late AnimationController _rotateController;
@@ -84,23 +85,36 @@ class _MinimalVoiceScreenState extends State<MinimalVoiceScreen>
       _isAvailable = await _speechToText.initialize(
         onStatus: _onSpeechStatus,
         onError: (error) {
-          setState(() {
-            _state = VoiceState.idle;
-            _statusText = 'Error, try again';
-          });
+          debugPrint('Speech error: ${error.errorMsg}');
+          if (mounted) {
+            setState(() {
+              _state = VoiceState.idle;
+              _statusText = 'Speech error: ${error.errorMsg}';
+            });
+          }
         },
       );
-      if (!_isAvailable && mounted) {
-        setState(() {
-          _statusText = 'Microphone unavailable';
-        });
+
+      if (_isAvailable && mounted) {
+        final locales = await _speechToText.locales();
+        debugPrint(
+            'Available locales: ${locales.map((l) => l.localeId).join(", ")}');
+        final turkishLocale =
+            locales.where((l) => l.localeId.startsWith('tr')).firstOrNull;
+        final englishLocale =
+            locales.where((l) => l.localeId.startsWith('en')).firstOrNull;
+        _preferredLocale = turkishLocale?.localeId ??
+            englishLocale?.localeId ??
+            locales.firstOrNull?.localeId;
+        debugPrint('Using locale: $_preferredLocale');
+      } else if (!_isAvailable && mounted) {
+        setState(() => _statusText = 'Microphone unavailable');
       }
     } catch (e) {
+      debugPrint('Speech init error: $e');
       _isAvailable = false;
       if (mounted) {
-        setState(() {
-          _statusText = 'Speech not supported';
-        });
+        setState(() => _statusText = 'Speech not supported: $e');
       }
     }
   }
@@ -159,7 +173,7 @@ class _MinimalVoiceScreenState extends State<MinimalVoiceScreen>
       onSoundLevelChange: (level) {
         setState(() => _soundLevel = level);
       },
-      localeId: 'tr_TR',
+      localeId: _preferredLocale,
       listenMode: ListenMode.dictation,
       cancelOnError: false,
       partialResults: true,
@@ -186,9 +200,10 @@ class _MinimalVoiceScreenState extends State<MinimalVoiceScreen>
 
       await _playTTSResponse(response);
     } catch (e) {
+      debugPrint('Voice processing error: $e');
       setState(() {
         _state = VoiceState.idle;
-        _statusText = 'Error, try again';
+        _statusText = 'Error: $e';
       });
     }
   }

@@ -53,32 +53,54 @@ class _MinimalCalendarScreenState extends State<MinimalCalendarScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          // Menu button
+          // SPEDA Logo (opens drawer)
           GestureDetector(
             onTap: () => Scaffold.of(context).openDrawer(),
-            child: const Icon(
-              Icons.menu_rounded,
-              size: 26,
-              color: SpedaColors.textSecondary,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: SpedaColors.surface,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  'assets/images/speda_ui_logo.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
+          // Title
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Calendar',
-                  style: SpedaTypography.heading.copyWith(
-                    fontSize: 24,
-                    letterSpacing: -0.5,
+                  'calendar',
+                  style: TextStyle(
+                    fontFamily: 'Logirent',
+                    fontSize: 26,
+                    color: SpedaColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  DateFormat('EEEE, MMMM d').format(_selectedDate),
-                  style: SpedaTypography.bodySmall.copyWith(
-                    color: SpedaColors.textTertiary,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: SpedaColors.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    DateFormat('MMM d').format(_selectedDate).toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: SpedaColors.primary,
+                    ),
                   ),
                 ),
               ],
@@ -93,8 +115,8 @@ class _MinimalCalendarScreenState extends State<MinimalCalendarScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: SpedaColors.surfaceLight,
-                borderRadius: BorderRadius.circular(20),
+                color: SpedaColors.surface,
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 'Today',
@@ -269,9 +291,19 @@ class _MinimalCalendarScreenState extends State<MinimalCalendarScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: SpedaColors.surface,
-        borderRadius: BorderRadius.circular(SpedaRadius.lg),
-        border: Border.all(color: SpedaColors.border),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1A1A24),
+            Color(0xFF121218),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: SpedaColors.primary.withOpacity(0.3),
+          width: 1,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),

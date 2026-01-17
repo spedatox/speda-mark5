@@ -17,90 +17,168 @@ class _SpedaDrawerState extends State<SpedaDrawer> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: SpedaColors.surface,
+      backgroundColor: const Color(0xFF0A0A0F), // Deep JARVIS background
       child: SafeArea(
         child: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // New conversation button (Moved to top)
+              // SPEDA Header with Logo
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: TextButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      widget.onNavigation?.call(0);
-                      context.read<ChatProvider>().clearConversation();
-                    },
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('New Conversation'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: SpedaColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: SpedaColors.surfaceLight,
-                      shape: RoundedRectangleBorder(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
+                        color: SpedaColors.surface,
                       ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          'assets/images/speda_ui_logo.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'speda',
+                          style: TextStyle(
+                            fontFamily: 'Logirent',
+                            fontSize: 28,
+                            color: SpedaColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'cItadel ecosystem',
+                          style: TextStyle(
+                            fontFamily: 'Logirent',
+                            fontSize: 12, // Adjusted for Logirent
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 1.5,
+                            color: SpedaColors.textTertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // New conversation button - JARVIS style
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onNavigation?.call(0);
+                    context.read<ChatProvider>().clearConversation();
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: SpedaColors.primary.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: SpedaColors.primary.withOpacity(0.4),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_rounded,
+                            size: 18, color: SpedaColors.primary),
+                        const SizedBox(width: 10),
+                        Text(
+                          'NEW CONVERSATION',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.2,
+                            color: SpedaColors.primary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
 
-              // Navigation items section
+              // Navigation Section Header
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                child: Text(
+                  'NAVIGATION',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                    color: SpedaColors.textTertiary,
+                  ),
+                ),
+              ),
+
+              // Navigation items - JARVIS style
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Column(
                   children: [
-                    _buildNavDrawerItem(Icons.mic_rounded, 'Voice Mode', 1),
+                    _buildNavDrawerItem(Icons.mic_rounded, 'VOICE MODE', 1),
                     _buildNavDrawerItem(
-                        Icons.check_circle_outline_rounded, 'Tasks', 2),
+                        Icons.check_circle_outline_rounded, 'TASKS', 2),
                     _buildNavDrawerItem(
-                        Icons.calendar_today_rounded, 'Calendar', 3),
-                    _buildNavDrawerItem(Icons.wb_sunny_rounded, 'Briefing', 4),
-                    _buildNavDrawerItem(Icons.settings_rounded, 'Settings', 5),
+                        Icons.calendar_today_rounded, 'CALENDAR', 3),
+                    _buildNavDrawerItem(Icons.wb_sunny_rounded, 'BRIEFING', 4),
+                    _buildNavDrawerItem(Icons.settings_rounded, 'SETTINGS', 5),
                   ],
                 ),
               ),
 
-              SpedaWidgets.divider(),
+              const SizedBox(height: 16),
 
-              // History Header
+              // Divider with JARVIS style
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                height: 1,
+                color: SpedaColors.borderSubtle,
+              ),
+
+              // History Header - JARVIS style
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.history_rounded,
-                      color: SpedaColors.textSecondary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'History',
-                      style: SpedaTypography.title.copyWith(
-                        color: SpedaColors.textPrimary,
-                      ),
-                    ),
-                  ],
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: Text(
+                  'HISTORY',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                    color: SpedaColors.textTertiary,
+                  ),
                 ),
               ),
 
               // Conversation list
               _ConversationHistoryList(
                 onConversationSelected: (conversationId) {
-                  Navigator.pop(context); // Close drawer
-
-                  // Navigate to chat screen (0)
+                  Navigator.pop(context);
                   widget.onNavigation?.call(0);
-
-                  // Load conversation
                   context.read<ChatProvider>().loadConversation(conversationId);
                 },
               ),
 
-              const SizedBox(height: 20), // Bottom padding
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -109,15 +187,41 @@ class _SpedaDrawerState extends State<SpedaDrawer> {
   }
 
   Widget _buildNavDrawerItem(IconData icon, String label, int screenIndex) {
-    return ListTile(
-      leading: Icon(icon, color: SpedaColors.textSecondary, size: 22),
-      title: Text(label,
-          style: SpedaTypography.body.copyWith(color: SpedaColors.textPrimary)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return GestureDetector(
       onTap: () {
         Navigator.pop(context);
         widget.onNavigation?.call(screenIndex);
       },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: SpedaColors.surface.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(8),
+          border: const Border(
+            left: BorderSide(
+              color: SpedaColors.primary,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: SpedaColors.primary, size: 20),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.8,
+                color: SpedaColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

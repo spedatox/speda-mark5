@@ -64,10 +64,10 @@ class _TasksScreenState extends State<TasksScreen> {
             color: JarvisColors.primary,
             margin: const EdgeInsets.only(right: 12),
           ),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'TASK MANAGEMENT',
                   style: TextStyle(
@@ -404,19 +404,19 @@ class _TasksScreenState extends State<TasksScreen> {
           ),
 
           // Corner accents
-          Positioned(
+          const Positioned(
               top: 0,
               left: 0,
               child: HudCorner(position: CornerPosition.topLeft, size: 8)),
-          Positioned(
+          const Positioned(
               top: 0,
               right: 0,
               child: HudCorner(position: CornerPosition.topRight, size: 8)),
-          Positioned(
+          const Positioned(
               bottom: 0,
               left: 0,
               child: HudCorner(position: CornerPosition.bottomLeft, size: 8)),
-          Positioned(
+          const Positioned(
               bottom: 0,
               right: 0,
               child: HudCorner(position: CornerPosition.bottomRight, size: 8)),

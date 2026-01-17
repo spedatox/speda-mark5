@@ -52,7 +52,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
 
     setState(() => _isLoading = false);
 
-    if (task != null && mounted) {
+    if (mounted) {
       Navigator.pop(context);
     }
   }

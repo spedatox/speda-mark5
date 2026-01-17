@@ -228,7 +228,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
         children: [
           _HudChip(label: _timeFormat.format(DateTime.now()), icon: Icons.timer),
           const SizedBox(width: 8),
-          _HudChip(label: 'SYNCED', icon: Icons.check_circle, color: JarvisColors.accent),
+          const _HudChip(label: 'SYNCED', icon: Icons.check_circle, color: JarvisColors.accent),
         ],
       ),
       child: Row(
@@ -439,7 +439,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
       title: 'INTEL STREAM',
       subtitle: 'Condensed headlines',
       accentColor: JarvisColors.warning,
-      trailing: _HudChip(label: 'RSS LIVE', icon: Icons.wifi_tethering),
+      trailing: const _HudChip(label: 'RSS LIVE', icon: Icons.wifi_tethering),
       child: items.isEmpty
           ? Text(
               'No news pulled at this time.',
@@ -522,7 +522,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
       title: 'COMMS QUEUE',
       subtitle: 'Pending outbound mail',
       accentColor: JarvisColors.primary,
-      trailing: _HudChip(label: 'AUTO-SEND PAUSED', icon: Icons.pause_circle),
+      trailing: const _HudChip(label: 'AUTO-SEND PAUSED', icon: Icons.pause_circle),
       child: emails.isEmpty
           ? Text(
               'No outbound messages awaiting confirmation.',
@@ -1079,7 +1079,7 @@ class _HudSpinner extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
+        const SizedBox(
           height: 64,
           width: 64,
           child: CircularProgressIndicator(

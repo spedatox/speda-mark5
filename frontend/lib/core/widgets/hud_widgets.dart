@@ -66,19 +66,19 @@ class HudPanel extends StatelessWidget {
 
           // Corner accents
           if (showCorners) ...[
-            Positioned(
+            const Positioned(
                 top: 0,
                 left: 0,
                 child: HudCorner(position: CornerPosition.topLeft)),
-            Positioned(
+            const Positioned(
                 top: 0,
                 right: 0,
                 child: HudCorner(position: CornerPosition.topRight)),
-            Positioned(
+            const Positioned(
                 bottom: 0,
                 left: 0,
                 child: HudCorner(position: CornerPosition.bottomLeft)),
-            Positioned(
+            const Positioned(
                 bottom: 0,
                 right: 0,
                 child: HudCorner(position: CornerPosition.bottomRight)),
@@ -86,7 +86,7 @@ class HudPanel extends StatelessWidget {
 
           // Scan line effect
           if (showScanLine)
-            Positioned.fill(
+            const Positioned.fill(
               child: ScanLineEffect(),
             ),
         ],

@@ -111,3 +111,6 @@ flutter:
         - asset: assets/fonts/FS Industrie Cd Black Italic.otf
           weight: 900
           style: italic
+    - family: Logirent
+      fonts:
+        - asset: assets/fonts/Logirent-Regular.otf

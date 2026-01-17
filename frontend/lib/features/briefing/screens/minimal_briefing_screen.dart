@@ -81,57 +81,88 @@ class _MinimalBriefingScreenState extends State<MinimalBriefingScreen> {
   }
 
   Widget _buildHeader(String greeting) {
+    final hour = DateTime.now().hour;
+    final timeGreeting = hour < 12
+        ? 'morning'
+        : hour < 17
+            ? 'afternoon'
+            : 'evening';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Top row with Menu Button
+        // Top row with SPEDA Logo and date
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            // SPEDA Logo (opens drawer)
             GestureDetector(
               onTap: () => Scaffold.of(context).openDrawer(),
               child: Container(
-                padding: const EdgeInsets.all(8),
-                margin: const EdgeInsets.only(
-                    bottom: 16,
-                    left: 4), // Negative margin visually? No, just padding
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: SpedaColors.surfaceLight,
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(10),
+                  color: SpedaColors.surface,
                 ),
-                child: const Icon(
-                  Icons.menu_rounded,
-                  size: 24,
-                  color: SpedaColors.textSecondary,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    'assets/images/speda_ui_logo.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Title
+            Expanded(
+              child: Text(
+                'brIefIng',
+                style: TextStyle(
+                  fontFamily: 'Logirent',
+                  fontSize: 26,
+                  color: SpedaColors.textPrimary,
+                ),
+              ),
+            ),
+            // Date indicator
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: SpedaColors.primary.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                DateFormat('MMM d').format(DateTime.now()).toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1,
+                  color: SpedaColors.primary,
                 ),
               ),
             ),
           ],
         ),
-
+        const SizedBox(height: 20),
+        // Personalized greeting
         Text(
-          'Good ${_getTimeOfDay()}',
-          style: SpedaTypography.displayLarge.copyWith(
-            fontSize: 28,
+          'Good $timeGreeting, Ahmet Erol.',
+          style: SpedaTypography.heading.copyWith(
+            fontSize: 22,
+            color: SpedaColors.textPrimary,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
           greeting,
           style: SpedaTypography.body.copyWith(
             color: SpedaColors.textSecondary,
-            height: 1.5,
           ),
         ),
       ],
     );
-  }
-
-  String _getTimeOfDay() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'morning';
-    if (hour < 17) return 'afternoon';
-    return 'evening';
   }
 
   Widget _buildEmptyState() {
@@ -342,9 +373,19 @@ class _MinimalBriefingScreenState extends State<MinimalBriefingScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: SpedaColors.surface,
-        borderRadius: BorderRadius.circular(SpedaRadius.lg),
-        border: Border.all(color: SpedaColors.border),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1A1A24),
+            Color(0xFF121218),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: iconColor.withOpacity(0.3),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

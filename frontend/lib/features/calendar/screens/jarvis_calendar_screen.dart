@@ -66,10 +66,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
             color: JarvisColors.primary,
             margin: const EdgeInsets.only(right: 12),
           ),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'CALENDAR',
                   style: TextStyle(
@@ -505,12 +505,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     ],
                   ),
                   // Corner accents
-                  Positioned(
+                  const Positioned(
                     top: -16,
                     left: -16,
                     child: HudCorner(position: CornerPosition.topLeft, size: 6),
                   ),
-                  Positioned(
+                  const Positioned(
                     top: -16,
                     right: -16,
                     child:

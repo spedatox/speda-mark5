@@ -73,21 +73,32 @@ class _MinimalSettingsScreenState extends State<MinimalSettingsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
-          // Menu button
+          // SPEDA Logo (opens drawer)
           GestureDetector(
             onTap: () => Scaffold.of(context).openDrawer(),
-            child: const Icon(
-              Icons.menu_rounded,
-              size: 26,
-              color: SpedaColors.textSecondary,
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: SpedaColors.surface,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/images/speda_ui_logo.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 16),
           Text(
-            'Settings',
-            style: SpedaTypography.heading.copyWith(
-              fontSize: 24,
-              letterSpacing: -0.5,
+            'settIngs',
+            style: TextStyle(
+              fontFamily: 'Logirent',
+              fontSize: 26, // Increased size for lowercase
+              color: SpedaColors.textPrimary,
             ),
           ),
         ],
