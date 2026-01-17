@@ -456,7 +456,10 @@ class OpenAIResponsesService(LLMService):
 
 Respond in JSON format only."""
 
-        input_items = [{"role": "user", "content": [{"type": "input_text", "text": user_message}]}]
+        input_items = [{
+            "role": "user", 
+            "content": [{"type": "input_text", "text": user_message}]
+        }]
         
         if context:
             system_prompt += f"\n\nContext: {context}"
@@ -466,16 +469,29 @@ Respond in JSON format only."""
             "instructions": system_prompt,
             "input": input_items,
             "temperature": 0.1,
-            "text": {"format": {"type": "json_object"}},
+            "max_output_tokens": 200,
         }
         
         response = await self.http_client.post("/responses", json=payload)
         response.raise_for_status()
         data = response.json()
         
+        # Extract output_text from response
+        output_text = data.get("output_text", "") or ""
+        
+        # Try to parse JSON from the output
         try:
-            return json.loads(data.get("output_text", "{}"))
+            # Try direct JSON parse
+            return json.loads(output_text)
         except json.JSONDecodeError:
+            # Try to extract JSON from text
+            import re
+            json_match = re.search(r'\{[^{}]*\}', output_text, re.DOTALL)
+            if json_match:
+                try:
+                    return json.loads(json_match.group())
+                except json.JSONDecodeError:
+                    pass
             return {"intent": "general_chat", "entities": {}, "language": "en"}
 
     async def generate_conversation_title(
