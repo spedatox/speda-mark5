@@ -374,7 +374,11 @@ class ApiService {
 
   /// Send a voice message (for voice mode)
   /// Uses the streaming endpoint and collects the full response
-  Future<String> sendVoiceMessage(String message) async {
+  /// Optional onStatus callback is called with function status updates
+  Future<String> sendVoiceMessage(
+    String message, {
+    void Function(String functionName)? onFunctionStart,
+  }) async {
     // Create a dedicated client for this streaming request
     final streamClient = http.Client();
 
@@ -414,7 +418,17 @@ class ApiService {
             if (dataStr == '[DONE]') continue;
             try {
               final data = jsonDecode(dataStr);
-              if (data['type'] == 'chunk' && data['content'] != null) {
+              final type = data['type'];
+
+              // Handle function start events
+              if (type == 'function_start' && onFunctionStart != null) {
+                final functionName =
+                    data['function_name'] ?? data['name'] ?? 'unknown';
+                onFunctionStart(functionName);
+              }
+
+              // Handle text chunks
+              if (type == 'chunk' && data['content'] != null) {
                 fullResponse.write(data['content']);
               }
             } catch (_) {

@@ -191,7 +191,15 @@ class _MinimalVoiceScreenState extends State<MinimalVoiceScreen>
     });
 
     try {
-      final response = await _apiService.sendVoiceMessage(_transcribedText);
+      final response = await _apiService.sendVoiceMessage(
+        _transcribedText,
+        onFunctionStart: (functionName) {
+          // Update status with detailed function message
+          setState(() {
+            _statusText = _getFunctionStatusMessage(functionName);
+          });
+        },
+      );
 
       setState(() {
         _state = VoiceState.speaking;
@@ -205,6 +213,68 @@ class _MinimalVoiceScreenState extends State<MinimalVoiceScreen>
         _state = VoiceState.idle;
         _statusText = 'Error: $e';
       });
+    }
+  }
+
+  /// Get a user-friendly status message for function execution
+  String _getFunctionStatusMessage(String functionName) {
+    switch (functionName) {
+      // Calendar functions
+      case 'get_calendar_events':
+        return '📅 Google Calendar\'a bağlanılıyor...';
+      case 'create_calendar_event':
+        return '📅 Takvime etkinlik oluşturuluyor...';
+      case 'update_calendar_event':
+        return '📅 Etkinlik güncelleniyor...';
+      case 'delete_calendar_event':
+        return '📅 Etkinlik siliniyor...';
+
+      // Task functions
+      case 'get_tasks':
+        return '✅ Görevler sunucudan alınıyor...';
+      case 'create_task':
+        return '✅ Görev oluşturuluyor...';
+      case 'complete_task':
+        return '✅ Görev tamamlanıyor...';
+      case 'delete_task':
+        return '🗑️ Görev siliniyor...';
+      case 'update_task':
+        return '✅ Görev güncelleniyor...';
+
+      // Weather functions
+      case 'get_current_weather':
+        return '🌤️ Hava durumu alınıyor...';
+      case 'get_weather_forecast':
+        return '🌤️ Hava tahmini alınıyor...';
+
+      // News functions
+      case 'get_news_headlines':
+        return '📰 Haberler getiriliyor...';
+      case 'search_news':
+        return '📰 Haberler aranıyor...';
+
+      // Search functions
+      case 'web_search':
+        return '🔍 Web araması yapılıyor...';
+
+      // Briefing functions
+      case 'get_daily_briefing':
+        return '📋 Günlük özet hazırlanıyor...';
+
+      // Memory functions
+      case 'remember':
+        return '🧠 Hafızaya kaydediliyor...';
+      case 'recall':
+        return '🧠 Hafızadan çağrılıyor...';
+
+      // Email functions
+      case 'send_email':
+        return '📧 E-posta gönderiliyor...';
+      case 'draft_email':
+        return '📧 E-posta taslağı oluşturuluyor...';
+
+      default:
+        return '⚙️ Sunucuya bağlanılıyor...';
     }
   }
 

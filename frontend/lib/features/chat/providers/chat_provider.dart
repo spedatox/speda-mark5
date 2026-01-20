@@ -429,32 +429,62 @@ class ChatProvider extends ChangeNotifier {
   /// Get a user-friendly status message for function execution
   String _getFunctionStatusMessage(String functionName) {
     switch (functionName) {
+      // Calendar functions
       case 'get_calendar_events':
-        return '📅 Checking your calendar...';
+        return '📅 Connecting to Google Calendar...';
       case 'create_calendar_event':
-        return '📅 Creating calendar event...';
+        return '📅 Creating event in Google Calendar...';
+      case 'update_calendar_event':
+        return '📅 Updating event in Google Calendar...';
+      case 'delete_calendar_event':
+        return '📅 Deleting event from Google Calendar...';
+
+      // Task functions
       case 'get_tasks':
-        return '✅ Fetching your tasks...';
+        return '✅ Fetching tasks from server...';
       case 'create_task':
-        return '✅ Creating new task...';
+        return '✅ Creating task on server...';
       case 'complete_task':
-        return '✅ Completing task...';
+        return '✅ Marking task as complete...';
       case 'delete_task':
-        return '🗑️ Deleting task...';
+        return '🗑️ Deleting task from server...';
+      case 'update_task':
+        return '✅ Updating task on server...';
+
+      // Weather functions
       case 'get_current_weather':
-        return '🌤️ Checking weather...';
+        return '🌤️ Fetching weather from OpenWeather...';
       case 'get_weather_forecast':
-        return '🌤️ Getting weather forecast...';
+        return '🌤️ Getting forecast from OpenWeather...';
+
+      // News functions
       case 'get_news_headlines':
-        return '📰 Fetching news...';
+        return '📰 Fetching headlines from news API...';
       case 'search_news':
-        return '📰 Searching news...';
+        return '📰 Searching news articles...';
+
+      // Search functions
       case 'web_search':
-        return '🔍 Searching the web...';
+        return '🔍 Searching via Tavily API...';
+
+      // Briefing functions
       case 'get_daily_briefing':
-        return '📋 Preparing your briefing...';
+        return '📋 Compiling your daily briefing...';
+
+      // Memory functions
+      case 'remember':
+        return '🧠 Storing in memory...';
+      case 'recall':
+        return '🧠 Retrieving from memory...';
+
+      // Email functions
+      case 'send_email':
+        return '📧 Sending email via Gmail...';
+      case 'draft_email':
+        return '📧 Creating email draft...';
+
       default:
-        return '⚙️ Processing...';
+        return '⚙️ Connecting to server...';
     }
   }
 
