@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/assets/icons/speda_logo.png" alt="S.P.E.D.A. Mark V" width="140" />
+  <img src="frontend/assets/icons/app_icon.png" alt="S.P.E.D.A. Mark V" width="140" />
 </p>
 
 <h1 align="center">S.P.E.D.A. — Mark V</h1>
