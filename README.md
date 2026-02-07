@@ -1,51 +1,52 @@
-# S.P.E.D.A.
+<p align="center">
+  <img src="frontend/assets/icons/speda_logo.png" alt="S.P.E.D.A. Mark V" width="140" />
+</p>
 
-**Specialized Personal Executive Digital Assistant**
+<h1 align="center">S.P.E.D.A. — Mark V</h1>
 
 <p align="center">
-  <img src="frontend/assets/icons/speda_logo.png" alt="S.P.E.D.A." width="120" />
+  <strong>Specialized Personal Executive Digital Assistant</strong>
 </p>
 
 <p align="center">
-  <em>Your AI-powered digital Chief of Staff – Just like J.A.R.V.I.S.</em>
+  <em>Your AI-powered digital Chief of Staff — Just like J.A.R.V.I.S.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/python-3.11+-green" alt="Python">
-  <img src="https://img.shields.io/badge/flutter-3.16+-blue" alt="Flutter">
-  <img src="https://img.shields.io/badge/AI-GPT--4-purple" alt="AI">
+  <img src="https://img.shields.io/badge/Mark-V-critical?style=flat-square" alt="Mark V">
+  <img src="https://img.shields.io/badge/version-5.0.0-blue?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/python-3.11+-green?style=flat-square&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/flutter-3.16+-blue?style=flat-square&logo=flutter&logoColor=white" alt="Flutter">
+  <img src="https://img.shields.io/badge/AI-GPT--4-purple?style=flat-square&logo=openai&logoColor=white" alt="AI">
 </p>
 
 ---
 
-## What is S.P.E.D.A.?
+## What is S.P.E.D.A. Mark V?
 
-S.P.E.D.A. is not a chatbot. It's your **digital executive assistant** – a continuous, aware presence that manages your calendar, tasks, emails, and daily briefings with proactive intelligence.
+S.P.E.D.A. Mark V is the fifth iteration of the **Specialized Personal Executive Digital Assistant** — not a chatbot, but a continuous, context-aware presence that manages your calendar, tasks, emails, and daily briefings with proactive intelligence.
 
-### ✨ Key Features
+## ✨ Key Features
 
-| Feature | Description |
-|---------|-------------|
-| 🧠 **Conversational AI** | Natural language interface with context memory |
-| 📍 **Location Awareness** | Knows where you are for contextual responses |
-| 📅 **Calendar Management** | Google Calendar integration with smart scheduling |
-| ✅ **Task Management** | Persistent reminders that never forget |
-| 📧 **Email Drafting** | Gmail integration with mandatory confirmation |
-| 🌤️ **Daily Briefing** | Weather, schedule, tasks, and news at a glance |
-| 🗣️ **Voice Mode** | Hands-free interaction with TTS/STT |
-| 📎 **Image Upload** | Attach images and ask questions about them |
-| 🔍 **Web Search** | Tavily-powered intelligent search |
-
----
+| | Feature | Description |
+|---|---------|-------------|
+| 🧠 | **Conversational AI** | Natural language interface with context memory |
+| 📍 | **Location Awareness** | Knows where you are for contextual responses |
+| 📅 | **Calendar Management** | Google Calendar integration with smart scheduling |
+| ✅ | **Task Management** | Persistent reminders that never forget |
+| 📧 | **Email Drafting** | Gmail integration with mandatory confirmation |
+| 🌤️ | **Daily Briefing** | Weather, schedule, tasks, and news at a glance |
+| 🗣️ | **Voice Mode** | Hands-free interaction with TTS/STT |
+| 📎 | **Image Upload** | Attach images and ask questions about them |
+| 🔍 | **Web Search** | Tavily-powered intelligent search |
 
 ## 🖼️ Screenshots
 
 <table>
 <tr>
-<td><strong>Chat Interface</strong></td>
-<td><strong>History Drawer</strong></td>
-<td><strong>Daily Briefing</strong></td>
+<td align="center"><strong>Chat Interface</strong></td>
+<td align="center"><strong>History Drawer</strong></td>
+<td align="center"><strong>Daily Briefing</strong></td>
 </tr>
 <tr>
 <td><img src="docs/screenshots/chat.png" width="200"/></td>
@@ -54,15 +55,15 @@ S.P.E.D.A. is not a chatbot. It's your **digital executive assistant** – a con
 </tr>
 </table>
 
----
-
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Python** 3.11+
-- **Flutter** 3.16+
-- **API Keys**: OpenAI, Google OAuth (optional: Weather, News, Tavily)
+| Requirement | Version |
+|-------------|---------|
+| Python | 3.11+ |
+| Flutter | 3.16+ |
+| API Keys | OpenAI, Google OAuth (optional: Weather, News, Tavily) |
 
 ### Backend Setup
 
@@ -72,11 +73,8 @@ python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -e .
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your API keys
+cp .env.example .env      # Configure your API keys
 
-# Run server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -85,10 +83,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```bash
 cd frontend
 flutter pub get
-flutter run -d windows  # or -d android, -d chrome
+flutter run -d windows     # or -d android, -d chrome
 ```
-
----
 
 ## ⚙️ Configuration
 
@@ -118,12 +114,10 @@ static const String cloudBackendUrl = 'http://YOUR_SERVER_IP:8000';
 static const String cloudApiKey = 'your-secure-token';
 ```
 
----
-
 ## 🏗️ Architecture
 
 ```
-S.P.E.D.A.
+S.P.E.D.A. Mark V
 ├── backend/                 # FastAPI (Python)
 │   ├── app/
 │   │   ├── routers/         # API endpoints
@@ -142,23 +136,19 @@ S.P.E.D.A.
             └── briefing/    # Daily briefing
 ```
 
----
-
 ## 🌐 API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/chat` | POST | Main conversation interface |
-| `/api/chat/stream` | POST | Streaming conversation |
-| `/api/tasks` | GET/POST | Task management |
-| `/api/calendar/events` | GET/POST | Calendar events |
-| `/api/briefing/today` | GET | Daily briefing with weather |
-| `/api/voice/tts` | POST | Text-to-speech |
-| `/health` | GET | Health check |
+| `/api/chat` | `POST` | Main conversation interface |
+| `/api/chat/stream` | `POST` | Streaming conversation |
+| `/api/tasks` | `GET` · `POST` | Task management |
+| `/api/calendar/events` | `GET` · `POST` | Calendar events |
+| `/api/briefing/today` | `GET` | Daily briefing with weather |
+| `/api/voice/tts` | `POST` | Text-to-speech |
+| `/health` | `GET` | Health check |
 
 Full API docs: `http://localhost:8000/docs`
-
----
 
 ## 🚢 Deployment
 
@@ -171,50 +161,37 @@ docker-compose up -d
 
 ### Oracle Cloud Free Tier
 
-See [DEPLOYMENT.md](backend/DEPLOYMENT.md) for complete guide.
-
----
+See [DEPLOYMENT.md](backend/DEPLOYMENT.md) for the complete deployment guide.
 
 ## 🎨 Design Philosophy
 
-1. **Gemini-Style UI** – Clean, modern interface inspired by Google Gemini
-2. **Two-Row Input** – Text field on top, action buttons below
-3. **Drawer Navigation** – All screens accessible via hamburger menu
-4. **Location Aware** – Weather and context based on your location
-5. **No Robotics** – Natural language, no bullet points or tables in responses
-
----
+| Principle | Details |
+|-----------|---------|
+| **Gemini-Style UI** | Clean, modern interface inspired by Google Gemini |
+| **Two-Row Input** | Text field on top, action buttons below |
+| **Drawer Navigation** | All screens accessible via hamburger menu |
+| **Location Aware** | Weather and context based on your location |
+| **Natural Language** | Conversational responses — no robotic formatting |
 
 ## 🔧 Tech Stack
 
-**Backend:**
-- FastAPI + SQLAlchemy (async)
-- OpenAI GPT-4 with Function Calling
-- ChromaDB for vector storage
-- Google OAuth2 + Gmail/Calendar APIs
-
-**Frontend:**
-- Flutter 3.16+ (Android, Windows, Web)
-- Provider state management
-- Geolocator for location services
-- flutter_markdown for rich text
-
----
+| Layer | Technologies |
+|-------|-------------|
+| **Backend** | FastAPI · SQLAlchemy (async) · OpenAI GPT-4 with Function Calling · ChromaDB · Google OAuth2 + Gmail/Calendar APIs |
+| **Frontend** | Flutter 3.16+ (Android, Windows, Web) · Provider · Geolocator · flutter_markdown |
 
 ## 📝 License
 
 Private project. All rights reserved.
 
----
-
 ## 👤 Author
 
-**Ahmet Erol Bayrak** (Spedatox)
+**Ahmet Erol Bayrak** · [@spedatox](https://github.com/spedatox)
 
 ---
 
 <p align="center">
-  <strong>S.P.E.D.A.</strong> – Specialized Personal Executive Digital Assistant
+  <strong>S.P.E.D.A. Mark V</strong> — Specialized Personal Executive Digital Assistant
   <br>
-  <em>"Good morning, sir. I've prepared your briefing."</em>
+  <sub><em>"Good morning, sir. I've prepared your briefing."</em></sub>
 </p>
